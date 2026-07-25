@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
 
 type Provider struct {
-	Alias    string `toml:"alias"`
+	Alias    string `toml:"-"`
 	Type     string `toml:"type"`
 	Host     string `toml:"host"`
 	Username string `toml:"username"`
@@ -17,7 +18,7 @@ type Provider struct {
 }
 
 type ProvidersConfig struct {
-	Providers []Provider `toml:"providers"`
+	Providers map[string]Provider `toml:"providers"`
 }
 
 func SneakConfigDir() (string, error) {
@@ -46,7 +47,9 @@ func LoadProviders() (*ProvidersConfig, error) {
 		return nil, err
 	}
 
-	cfg := &ProvidersConfig{}
+	cfg := &ProvidersConfig{
+		Providers: make(map[string]Provider),
+	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return cfg, nil
@@ -55,6 +58,15 @@ func LoadProviders() (*ProvidersConfig, error) {
 	if _, err := toml.DecodeFile(path, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse %s: %w", path, err)
 	}
+
+	// Populate Alias from map key so consumers don't have to.
+	normalized := make(map[string]Provider, len(cfg.Providers))
+	for alias, p := range cfg.Providers {
+		p.Alias = alias
+		normalized[alias] = p
+	}
+	cfg.Providers = normalized
+
 	return cfg, nil
 }
 
@@ -83,10 +95,22 @@ func GetProviderByAlias(alias string) (*Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range cfg.Providers {
-		if cfg.Providers[i].Alias == alias {
-			return &cfg.Providers[i], nil
+	p, ok := cfg.Providers[alias]
+	if !ok {
+		return nil, fmt.Errorf("provider %q not found", alias)
+	}
+	return &p, nil
+}
+
+func GetProviderByHost(host string) (*Provider, error) {
+	cfg, err := LoadProviders()
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range cfg.Providers {
+		if strings.EqualFold(p.Host, host) {
+			return &p, nil
 		}
 	}
-	return nil, fmt.Errorf("provider %q not found", alias)
+	return nil, fmt.Errorf("no provider found for host %q", host)
 }

@@ -3,15 +3,13 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
+	"github.com/richo542/sneak/internal/client"
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 func newConfigCmd() *cobra.Command {
@@ -37,8 +35,6 @@ Use --list to show all configured providers and their connection status.`,
 	return cmd
 }
 
-// --- List ---
-
 func runConfigList() error {
 	cfg, err := config.LoadProviders()
 	if err != nil {
@@ -55,7 +51,13 @@ func runConfigList() error {
 
 	for _, p := range cfg.Providers {
 		status := "not tested"
-		if err := testConnection(p); err != nil {
+
+		providerClient, err := client.NewProviderClient(&p)
+		if err != nil {
+			status = fmt.Sprintf("failed: %s", err)
+		}
+
+		if err := providerClient.TestConnection(); err != nil {
 			status = fmt.Sprintf("error: %s", err)
 		} else {
 			status = "ok"
@@ -66,22 +68,17 @@ func runConfigList() error {
 	return nil
 }
 
-// --- Interactive Setup ---
-
 func runConfigSetup() error {
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Println("╔══════════════════════════════════════╗")
-	fmt.Println("║       sneak provider setup           ║")
-	fmt.Println("╚══════════════════════════════════════╝")
-	fmt.Println()
+	ui.PrintBanner()
 
-	providerType, err := promptChoice(reader, "Provider type", []string{"jira", "azure"})
+	providerType, err := ui.PromptChoice(reader, "Provider type", []string{"jira", "azure"})
 	if err != nil {
 		return err
 	}
 
-	alias, err := promptLine(reader, "Alias (short name, e.g. 'work-jira')")
+	alias, err := ui.PromptLine(reader, "Alias (short name, e.g. 'work-jira')")
 	if err != nil {
 		return err
 	}
@@ -89,7 +86,7 @@ func runConfigSetup() error {
 		return fmt.Errorf("alias cannot be empty")
 	}
 
-	host, err := promptLine(reader, "Host URL (e.g. https://mycompany.atlassian.net)")
+	host, err := ui.PromptLine(reader, "Host URL (e.g. https://mycompany.atlassian.net)")
 	if err != nil {
 		return err
 	}
@@ -97,7 +94,7 @@ func runConfigSetup() error {
 		return fmt.Errorf("host cannot be empty")
 	}
 
-	username, err := promptLine(reader, "Username / email")
+	username, err := ui.PromptLine(reader, "Username / email")
 	if err != nil {
 		return err
 	}
@@ -106,7 +103,7 @@ func runConfigSetup() error {
 	}
 
 	fmt.Print("Password / PAT: ")
-	token, err := readSecret()
+	token, err := ui.ReadSecret()
 	if err != nil {
 		return err
 	}
@@ -124,10 +121,16 @@ func runConfigSetup() error {
 
 	fmt.Println()
 	fmt.Print("Testing connection... ")
-	if err := testConnection(provider); err != nil {
+
+	providerClient, err := client.NewProviderClient(&provider)
+	if err != nil {
+		return err
+	}
+
+	if err := providerClient.TestConnection(); err != nil {
 		fmt.Printf("failed\n  → %s\n\n", err)
 		fmt.Print("Save provider anyway? [y/N] ")
-		confirm, _ := promptLine(reader, "")
+		confirm, _ := ui.PromptLine(reader, "")
 		if !strings.EqualFold(strings.TrimSpace(confirm), "y") {
 			return fmt.Errorf("aborted — provider not saved")
 		}
@@ -135,22 +138,20 @@ func runConfigSetup() error {
 		fmt.Println("ok")
 	}
 
+	if err := persistProvider(provider); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func persistProvider(provider config.Provider) error {
 	cfg, err := config.LoadProviders()
 	if err != nil {
 		return err
 	}
 
-	updated := false
-	for i, p := range cfg.Providers {
-		if p.Alias == provider.Alias {
-			cfg.Providers[i] = provider
-			updated = true
-			break
-		}
-	}
-	if !updated {
-		cfg.Providers = append(cfg.Providers, provider)
-	}
+	cfg.Providers[provider.Alias] = provider
 
 	if err := config.SaveProviders(cfg); err != nil {
 		return err
@@ -159,112 +160,4 @@ func runConfigSetup() error {
 	path, _ := config.SneakConfigDir()
 	fmt.Printf("\nProvider '%s' saved → %s/providers.toml\n", provider.Alias, path)
 	return nil
-}
-
-// --- Connection Testing ---
-
-func testConnection(p config.Provider) error {
-	switch p.Type {
-	case "jira":
-		return testJiraConnection(p)
-	case "azure":
-		return testAzureConnection(p)
-	default:
-		return fmt.Errorf("unsupported provider type: %s", p.Type)
-	}
-}
-
-func testJiraConnection(p config.Provider) error {
-	host := strings.TrimRight(p.Host, "/")
-	url := host + "/rest/api/2/myself"
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return fmt.Errorf("bad request: %w", err)
-	}
-	req.SetBasicAuth(p.Username, p.Token)
-	req.Header.Set("Accept", "application/json")
-
-	return doTestRequest(req)
-}
-
-func testAzureConnection(p config.Provider) error {
-	host := strings.TrimRight(p.Host, "/")
-	url := host + "/_apis/profile/profiles/me?api-version=7.1-preview.1"
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return fmt.Errorf("bad request: %w", err)
-	}
-	// Azure DevOps PAT auth: Basic with empty user and PAT as password
-	req.SetBasicAuth("", p.Token)
-	req.Header.Set("Accept", "application/json")
-
-	return doTestRequest(req)
-}
-
-func doTestRequest(req *http.Request) error {
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("connection failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-
-	// Consume body so connection can be reused
-	io.Copy(io.Discard, resp.Body)
-	return nil
-}
-
-// --- Prompt Helpers ---
-
-func promptLine(reader *bufio.Reader, label string) (string, error) {
-	fmt.Printf("%s: ", label)
-	line, err := reader.ReadString('\n')
-	if err != nil {
-		return "", fmt.Errorf("read input: %w", err)
-	}
-	return strings.TrimRight(line, "\r\n"), nil
-}
-
-func promptChoice(reader *bufio.Reader, label string, options []string) (string, error) {
-	for {
-		fmt.Printf("%s [%s]: ", label, strings.Join(options, "/"))
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			return "", fmt.Errorf("read input: %w", err)
-		}
-		choice := strings.TrimSpace(strings.ToLower(line))
-		for _, opt := range options {
-			if choice == opt {
-				return opt, nil
-			}
-		}
-		fmt.Printf("  invalid choice, please enter one of: %s\n", strings.Join(options, ", "))
-	}
-}
-
-func readSecret() (string, error) {
-	fd := int(os.Stdin.Fd())
-	if term.IsTerminal(fd) {
-		b, err := term.ReadPassword(fd)
-		fmt.Println() // newline after hidden input
-		if err != nil {
-			return "", fmt.Errorf("read password: %w", err)
-		}
-		return string(b), nil
-	}
-
-	// Fallback for piped/non-terminal input
-	reader := bufio.NewReader(os.Stdin)
-	line, err := reader.ReadString('\n')
-	if err != nil {
-		return "", fmt.Errorf("read password: %w", err)
-	}
-	return strings.TrimRight(line, "\r\n"), nil
 }
