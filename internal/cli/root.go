@@ -2,6 +2,10 @@
 package cli
 
 import (
+	"os"
+
+	"github.com/richo542/sneak/internal/client"
+	"github.com/richo542/sneak/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -11,13 +15,13 @@ type BuildInfo struct {
 	Date    string
 }
 
-// App holds shared dependencies every subcommand can use.
-// This is what makes commands testable — inject fakes instead of
-// real filesystem/network dependencies in tests.
 type App struct {
-	// Registry *registry.Registry
-	// State    *state.Manager
-	Verbose bool
+	Provider *config.Provider
+	Client   client.ProviderClient
+	Context  *config.Context
+	State    *config.State
+	Dir      string
+	Verbose  bool
 }
 
 func NewRootCmd(info BuildInfo) *cobra.Command {
@@ -25,7 +29,7 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 
 	root := &cobra.Command{
 		Use:     "sneak",
-		Short:   "Manage CLI tools you need for your work",
+		Short:   "A CLI to easily close work task without overhead",
 		Version: info.Version,
 		// PersistentPreRunE runs once, after flags are parsed, before any subcommand.
 		// This is where we actually initialize the App now that we know flags like
@@ -43,6 +47,8 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		newVersionCmd(info),
 		newHelpCmd(),
 		newConfigCmd(),
+		newInitCmd(),
+		newListCmd(app),
 	)
 
 	return root
@@ -51,19 +57,35 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 var configPath string
 
 func initApp(app *App, cmd *cobra.Command) error {
-	/*
-		reg, err := registry.Load(configPath)
-		if err != nil {
-			return err
-		}
-		app.Registry = reg
+	dir, err := os.Getwd()
+	if err != nil {
+		return nil
+	}
+	app.Dir = dir
 
+	ctx, err := config.LoadContext(dir)
+	if err != nil {
+		return nil
+	}
+	app.Context = ctx
 
-		st, err := state.NewManager(configPath)
-		if err != nil {
-			return err
-		}
-		app.State = st
-	*/
+	provider, err := config.GetProviderByHost(ctx.Remote.Host)
+	if err != nil {
+		return nil
+	}
+	app.Provider = provider
+
+	c, err := client.NewProviderClient(provider)
+	if err != nil {
+		return nil
+	}
+	app.Client = c
+
+	state, err := config.LoadState(dir)
+	if err != nil {
+		return nil
+	}
+	app.State = state
+
 	return nil
 }

@@ -59,10 +59,11 @@ func LoadProviders() (*ProvidersConfig, error) {
 		return nil, fmt.Errorf("failed to parse %s: %w", path, err)
 	}
 
-	// Populate Alias from map key so consumers don't have to.
+	// Populate Alias from map key
 	normalized := make(map[string]Provider, len(cfg.Providers))
 	for alias, p := range cfg.Providers {
 		p.Alias = alias
+		p.Host = strings.TrimRight(p.Host, "/")
 		normalized[alias] = p
 	}
 	cfg.Providers = normalized

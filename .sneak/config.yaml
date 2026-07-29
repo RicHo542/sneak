@@ -1,0 +1,7 @@
+remote:
+  host: https://richo542.atlassian.net
+  type: jira
+  project: SCRUM
+
+bindings:
+  - SCRUM-1

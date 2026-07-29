@@ -8,8 +8,23 @@ import (
 	"github.com/richo542/sneak/internal/config"
 )
 
+type WorkItem struct {
+	ID       string
+	Key      string
+	Summary  string
+	Status   string
+	Type     string
+	Assignee string
+}
+
+type ListOptions struct {
+	Bindings []string
+	Types    []string
+}
+
 type ProviderClient interface {
 	TestConnection() error
+	ListWorkItems(ctx *config.Context, opts ListOptions) ([]WorkItem, error)
 }
 
 func NewProviderClient(p *config.Provider) (ProviderClient, error) {

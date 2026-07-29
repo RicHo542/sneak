@@ -18,6 +18,43 @@ func PromptLine(reader *bufio.Reader, label string) (string, error) {
 	return strings.TrimRight(line, "\r\n"), nil
 }
 
+type SelectItem struct {
+	Key   string
+	Label string
+}
+
+func PromptSelect(reader *bufio.Reader, label string, items []SelectItem) (string, error) {
+	for {
+		fmt.Printf("%s:\n", label)
+		for i, item := range items {
+			fmt.Printf("  %d) %s\n", i+1, item.Label)
+		}
+		fmt.Print("Enter number or key: ")
+
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return "", fmt.Errorf("read input: %w", err)
+		}
+		choice := strings.TrimSpace(line)
+
+		// Try numeric selection
+		for i, item := range items {
+			if choice == fmt.Sprintf("%d", i+1) {
+				return item.Key, nil
+			}
+		}
+
+		// Try matching by key
+		for _, item := range items {
+			if strings.EqualFold(choice, item.Key) {
+				return item.Key, nil
+			}
+		}
+
+		fmt.Printf("  invalid choice, please enter a number (1-%d) or key\n", len(items))
+	}
+}
+
 func PromptChoice(reader *bufio.Reader, label string, options []string) (string, error) {
 	for {
 		fmt.Printf("%s [%s]: ", label, strings.Join(options, "/"))

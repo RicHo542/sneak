@@ -1,0 +1,27 @@
+{
+  "cache": {
+    "items": [
+      {
+        "id": "10003",
+        "key": "SCRUM-4",
+        "summary": "Eval Step 2",
+        "status": "Zu erledigen",
+        "type": "Story",
+        "assignee": ""
+      },
+      {
+        "id": "10002",
+        "key": "SCRUM-3",
+        "summary": "Eval Step 1",
+        "status": "Zu erledigen",
+        "type": "Story",
+        "assignee": "RicHo542"
+      }
+    ],
+    "fetched_at": "2026-07-29T18:53:59.417602+02:00",
+    "bindings": [
+      "SCRUM-1"
+    ]
+  },
+  "active_tasks": null
+}
