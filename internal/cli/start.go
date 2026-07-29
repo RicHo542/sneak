@@ -39,5 +39,9 @@ func runStartCommand(
 	app *App, tasks []string,
 	createBranch bool, comment string,
 ) error {
+
+	if createBranch {
+	}
+
 	return nil
 }
