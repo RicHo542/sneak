@@ -33,7 +33,7 @@ Use --refresh to force a live fetch from the provider.`,
 	}
 
 	cmd.Flags().BoolVar(&refresh, "refresh", false, "force live fetch from provider")
-	cmd.Flags().StringVarP(&typeFilter, "type", "t", "", "filter by work item type (e.g. Story, Bug)")
+	cmd.Flags().StringVarP(&typeFilter, "types", "t", "", "filter by work item type (e.g. Story, Bug)")
 
 	return cmd
 }
@@ -57,9 +57,10 @@ func runList(app *App, refresh bool, typeFilter string) error {
 	}
 
 	items := state.Cache.Items
+	types := strings.Split(typeFilter, ",")
 
-	if typeFilter != "" && !needsFetch {
-		items = filterByType(items, typeFilter)
+	if len(types) > 0 && !needsFetch {
+		items = filterByType(items, types)
 	}
 
 	if len(items) == 0 {
@@ -88,11 +89,13 @@ func runList(app *App, refresh bool, typeFilter string) error {
 	return nil
 }
 
-func filterByType(items []config.CacheItem, typeFilter string) []config.CacheItem {
+func filterByType(items []config.CacheItem, types []string) []config.CacheItem {
 	var filtered []config.CacheItem
 	for _, item := range items {
-		if strings.EqualFold(item.Type, typeFilter) {
-			filtered = append(filtered, item)
+		for _, t := range types {
+			if strings.EqualFold(item.Type, t) {
+				filtered = append(filtered, item)
+			}
 		}
 	}
 	return filtered
