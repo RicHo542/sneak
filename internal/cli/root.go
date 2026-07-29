@@ -1,4 +1,3 @@
-// internal/cli/root.go
 package cli
 
 import (
@@ -31,13 +30,11 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		Use:     "sneak",
 		Short:   "A CLI to easily close work task without overhead",
 		Version: info.Version,
-		// PersistentPreRunE runs once, after flags are parsed, before any subcommand.
-		// This is where we actually initialize the App now that we know flags like
-		// --config or --verbose.
+		// Runs before any subcommand
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return initApp(app, cmd)
+			return initApp(app)
 		},
-		SilenceUsage: true, // don't dump usage on every runtime error
+		SilenceUsage: true,
 	}
 
 	root.PersistentFlags().StringVar(&configPath, "config", "", "path to sneak config dir (default ~/.sneak)")
@@ -49,6 +46,7 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		newConfigCmd(),
 		newInitCmd(),
 		newListCmd(app),
+		newStartCmd(app),
 	)
 
 	return root
@@ -56,7 +54,7 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 
 var configPath string
 
-func initApp(app *App, cmd *cobra.Command) error {
+func initApp(app *App) error {
 	dir, err := os.Getwd()
 	if err != nil {
 		return nil
