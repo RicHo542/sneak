@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/git"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,7 @@ Use '-m' to comment on the work item.`,
 				return fmt.Errorf("not initialized: run 'sneak init' first")
 			}
 
-			return nil
+			return runStartCommand(app, args, createBranch, message)
 		},
 	}
 
@@ -40,7 +41,50 @@ func runStartCommand(
 	createBranch bool, comment string,
 ) error {
 
+	// Check Cache expiry
+	refreshRequired, err := CheckAndRefreshCache(app, false)
+	if refreshRequired && err != nil {
+		return err
+	}
+
+	if len(tasks) < 1 {
+		return runInteractiveStartCommand(app)
+	}
+
+	// Validate tasks names
+	invalidTasks, hasInvalid := HasInvalidTasks(app, tasks)
+	if hasInvalid {
+		for _, ivTask := range invalidTasks {
+			fmt.Printf("task '%s' cannot be found.", ivTask)
+		}
+		return fmt.Errorf("some tasks in selection are invalid.")
+	}
+
+	return runNonInteractiveStartCommand(app, tasks, createBranch, comment)
+}
+
+func runInteractiveStartCommand(app *App) error { return nil }
+
+func runNonInteractiveStartCommand(app *App, tasks []string, createBranch bool, comment string) error {
 	if createBranch {
+		if err := createBranchFromTasks(tasks); err != nil {
+			return fmt.Errorf("failed to create branch: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func createBranchFromTasks(tasks []string) error {
+	if !git.NewGitClient().IsRepo() {
+		return fmt.Errorf("current context does not seem to be a git repository.")
+	}
+
+	branchName := git.BuildBranchName(tasks)
+	gitClient := git.NewGitClient()
+
+	if err := gitClient.CreateBranch(branchName); err != nil {
+		return err
 	}
 
 	return nil

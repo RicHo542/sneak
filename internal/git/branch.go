@@ -1,14 +1,15 @@
 package git
 
-import "strings"
+import (
+	"strings"
+)
 
-// Continue
 func BuildBranchName(tasks []string) string {
-	// var normalizedNames []string
+	var normalizedNames []string
 
 	for _, t := range tasks {
-		strings.ToLower(t)
+		normalizedNames = append(normalizedNames, strings.ToLower(t))
 	}
 
-	return ""
+	return strings.Join(normalizedNames, "-")
 }

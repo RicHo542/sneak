@@ -40,16 +40,12 @@ Use --refresh to force a live fetch from the provider.`,
 
 func runList(app *App, refresh bool, typeFilter string) error {
 
-	state := app.State
-	bindingsChanged := !state.Cache.MatchesBindings(app.Context.Bindings)
-	needsFetch := refresh || bindingsChanged || !state.Cache.IsFresh()
-
-	if needsFetch {
-		if err := RefreshCache(app); err != nil {
-			return err
-		}
+	refreshRequired, err := CheckAndRefreshCache(app, refresh)
+	if refreshRequired && err != nil {
+		return err
 	}
 
+	state := app.State
 	// Shouldn't happen as setting bindings is mandatory during init,
 	// however, keeping it as a saftey net.
 	if len(state.Cache.Bindings) == 0 {
@@ -59,7 +55,7 @@ func runList(app *App, refresh bool, typeFilter string) error {
 	items := state.Cache.Items
 	types := strings.Split(typeFilter, ",")
 
-	if len(types) > 0 && !needsFetch {
+	if len(types) > 0 {
 		items = filterByType(items, types)
 	}
 

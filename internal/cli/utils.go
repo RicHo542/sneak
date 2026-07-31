@@ -2,11 +2,26 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/richo542/sneak/internal/client"
 	"github.com/richo542/sneak/internal/config"
 )
+
+func CheckAndRefreshCache(app *App, refresh bool) (bool, error) {
+	state := app.State
+	bindingsChanged := !state.Cache.MatchesBindings(app.Context.Bindings)
+	needsFetch := refresh || bindingsChanged || !state.Cache.IsFresh()
+
+	if needsFetch {
+		if err := RefreshCache(app); err != nil {
+			return true, err
+		}
+	}
+
+	return false, nil
+}
 
 func RefreshCache(app *App) error {
 	fmt.Println("Fetching work items...")
@@ -42,4 +57,34 @@ func RefreshCache(app *App) error {
 	}
 
 	return nil
+}
+
+func HasInvalidTasks(app *App, tasks []string) ([]string, bool) {
+	// validate that task names are actually referring to
+	// existing tasks
+	var invalidTasks []string
+	for _, task := range tasks {
+		valid := false
+		for _, item := range app.State.Cache.Items {
+			if task == item.Key {
+				valid = true
+			}
+		}
+
+		if !valid {
+			invalidTasks = append(invalidTasks, task)
+		}
+	}
+
+	return invalidTasks, len(invalidTasks) > 0
+}
+
+func NormalizeTaskNames(tasks []string) []string {
+	var normalizedNames []string
+
+	for _, t := range tasks {
+		normalizedNames = append(normalizedNames, strings.ToLower(t))
+	}
+
+	return normalizedNames
 }
