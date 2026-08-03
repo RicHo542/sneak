@@ -53,8 +53,8 @@ func runList(app *App, refresh bool, typeFilter string) error {
 	}
 
 	items := state.Cache.Items
-	types := strings.Split(typeFilter, ",")
 
+	types := parseTypes(typeFilter)
 	if len(types) > 0 {
 		items = filterByType(items, types)
 	}
@@ -83,6 +83,18 @@ func runList(app *App, refresh bool, typeFilter string) error {
 	fmt.Println()
 
 	return nil
+}
+
+func parseTypes(typeFilter string) []string {
+	var types []string
+	typesSplits := strings.SplitSeq(typeFilter, ",")
+	for p := range typesSplits {
+		if p = strings.TrimSpace(p); p != "" {
+			types = append(types, p)
+		}
+	}
+
+	return types
 }
 
 func filterByType(items []config.CacheItem, types []string) []config.CacheItem {

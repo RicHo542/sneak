@@ -16,11 +16,11 @@ func CheckAndRefreshCache(app *App, refresh bool) (bool, error) {
 
 	if needsFetch {
 		if err := RefreshCache(app); err != nil {
-			return true, err
+			return needsFetch, err
 		}
 	}
 
-	return false, nil
+	return needsFetch, nil
 }
 
 func RefreshCache(app *App) error {

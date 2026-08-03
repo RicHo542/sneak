@@ -25,6 +25,8 @@ type ListOptions struct {
 type ProviderClient interface {
 	TestConnection() error
 	ListWorkItems(ctx *config.Context, opts ListOptions) ([]WorkItem, error)
+	DiscoverWorkflow(ctx *config.Context) (map[string]config.WorkflowMap, error)
+	TransitionWorkItems(ctx *config.Context, items []*config.CacheItem, ref config.TransitionRef) error
 }
 
 func NewProviderClient(p *config.Provider) (ProviderClient, error) {

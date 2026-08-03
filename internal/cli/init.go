@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"github.com/richo542/sneak/internal/client"
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
@@ -80,12 +82,60 @@ func initialize(dir string) error {
 	}
 
 	fmt.Println()
+	if err := discoverWorkflowTransitions(provider, cfg); err != nil {
+		fmt.Printf("Warning: %v\n", err)
+	}
+
+	fmt.Println()
 	if err := config.StoreContextConfig(dir, cfg); err != nil {
 		return err
 	}
 
 	fmt.Printf("Initialized .sneak/config.yaml for %s\n", provider.Host)
 	return nil
+}
+
+func discoverWorkflowTransitions(provider *config.Provider, cfg *config.Context) error {
+	c, err := client.NewProviderClient(provider)
+	if err != nil {
+		return fmt.Errorf("could not discover workflow transitions: %w", err)
+	}
+
+	workflow, err := c.DiscoverWorkflow(cfg)
+	if err != nil {
+		return fmt.Errorf("could not discover workflow transitions: %w", err)
+	}
+
+	cfg.Transitions = workflow
+
+	if len(workflow) == 0 {
+		fmt.Println("No workflow transitions discovered.")
+		return nil
+	}
+
+	types := make([]string, 0, len(workflow))
+	for t := range workflow {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+
+	fmt.Println("Discovered workflow transitions:")
+	for _, t := range types {
+		wm := workflow[t]
+		fmt.Printf("  %-10s start=%-30s done=%s\n", t,
+			transitionRefLabel(wm.Start), transitionRefLabel(wm.Done))
+	}
+	return nil
+}
+
+func transitionRefLabel(ref config.TransitionRef) string {
+	if ref.DisplayName == "" {
+		return "(unknown)"
+	}
+	if ref.TransitionKey != "" && ref.TransitionKey != ref.DisplayName {
+		return fmt.Sprintf("%s (key %s)", ref.DisplayName, ref.TransitionKey)
+	}
+	return ref.DisplayName
 }
 
 func checkAlreadyInitialized(reader *bufio.Reader, dir string) error {

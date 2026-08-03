@@ -5,29 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 )
-
-const CacheTTL = 1 * time.Hour
 
 type State struct {
 	Cache       Cache        `json:"cache"`
 	ActiveTasks []ActiveTask `json:"active_tasks"`
-}
-
-type Cache struct {
-	Items     []CacheItem `json:"items"`
-	FetchedAt time.Time   `json:"fetched_at"`
-	Bindings  []string    `json:"bindings"`
-}
-
-type CacheItem struct {
-	ID       string `json:"id"`
-	Key      string `json:"key"`
-	Summary  string `json:"summary"`
-	Status   string `json:"status"`
-	Type     string `json:"type"`
-	Assignee string `json:"assignee"`
 }
 
 type ActiveTask struct {
@@ -80,18 +62,18 @@ func SaveState(dir string, state *State) error {
 	return nil
 }
 
-func (c *Cache) IsFresh() bool {
-	return time.Since(c.FetchedAt) < CacheTTL
-}
-
-func (c *Cache) MatchesBindings(bindings []string) bool {
-	if len(c.Bindings) != len(bindings) {
-		return false
-	}
-	for i, b := range c.Bindings {
-		if b != bindings[i] {
-			return false
+func (s *State) AddActiveTasks(
+	items []*CacheItem, managed bool, branch string,
+) {
+	for _, item := range items {
+		at := ActiveTask{
+			Key:     item.Key,
+			Summary: item.Summary,
+			Status:  item.Status,
+			Managed: managed,
+			Branch:  branch,
 		}
+
+		s.ActiveTasks = append(s.ActiveTasks, at)
 	}
-	return true
 }

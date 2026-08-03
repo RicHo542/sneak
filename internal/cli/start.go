@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
 	"github.com/spf13/cobra"
 )
@@ -52,40 +53,119 @@ func runStartCommand(
 	}
 
 	// Validate tasks names
-	invalidTasks, hasInvalid := HasInvalidTasks(app, tasks)
-	if hasInvalid {
+	invalidTasks, invalid := HasInvalidTasks(app, tasks)
+	if invalid {
 		for _, ivTask := range invalidTasks {
-			fmt.Printf("task '%s' cannot be found.", ivTask)
+			fmt.Printf("task '%s' cannot be found.\n", ivTask)
 		}
-		return fmt.Errorf("some tasks in selection are invalid.")
+		return fmt.Errorf("Consider running 'sneak list --refresh' to update.")
 	}
 
-	return runNonInteractiveStartCommand(app, tasks, createBranch, comment)
+	return runNonInteractiveStartCommand(
+		app, tasks, createBranch, comment,
+	)
 }
 
 func runInteractiveStartCommand(app *App) error { return nil }
 
-func runNonInteractiveStartCommand(app *App, tasks []string, createBranch bool, comment string) error {
-	if createBranch {
-		if err := createBranchFromTasks(tasks); err != nil {
-			return fmt.Errorf("failed to create branch: %w", err)
+// transitionGroup groups work items by the transition key that moves them
+// into their target state, so each group needs only one transition call.
+type transitionGroup struct {
+	ref   config.TransitionRef
+	items []*config.CacheItem
+}
+
+func runNonInteractiveStartCommand(
+	app *App, tasks []string, createBranch bool,
+	comment string,
+) error {
+
+	cachedTasks, err := app.State.Cache.GetByKeyBatch(tasks)
+	if err != nil {
+		return fmt.Errorf(
+			"unable to find tasks in cache. "+
+				"Consider to run 'sneak list --refresh' to force a refresh.: %w",
+			err,
+		)
+	}
+
+	// Move tasks to in progress
+	// Identify the transition target for each task by its type
+	// Build groups with transitionKey -> work items
+	groups, err := groupTasksByTransition(app, cachedTasks)
+	if err != nil {
+		return err
+	}
+
+	for _, group := range groups {
+		if err := app.Client.TransitionWorkItems(app.Context, group.items, group.ref); err != nil {
+			return fmt.Errorf("failed to move work items to in progress: %w", err)
 		}
 	}
 
+	// Create branch based on the task names
+	branchName := ""
+	if createBranch {
+		createdBranchName, err := createBranchFromTasks(tasks)
+		if err != nil {
+			return fmt.Errorf("failed to create branch: %w", err)
+		}
+		branchName = createdBranchName
+	}
+
+	// TODO Comment on the tasks if required
+	fmt.Printf("Skipping commenting on task with '%s'", comment)
+
+	app.State.AddActiveTasks(cachedTasks, true, branchName)
 	return nil
 }
 
-func createBranchFromTasks(tasks []string) error {
+func createBranchFromTasks(tasks []string) (string, error) {
 	if !git.NewGitClient().IsRepo() {
-		return fmt.Errorf("current context does not seem to be a git repository.")
+		return "", fmt.Errorf("current context does not seem to be a git repository.")
 	}
 
 	branchName := git.BuildBranchName(tasks)
 	gitClient := git.NewGitClient()
 
 	if err := gitClient.CreateBranch(branchName); err != nil {
-		return err
+		return branchName, err
 	}
 
-	return nil
+	return branchName, nil
+}
+
+func groupTasksByTransition(
+	app *App, tasks []*config.CacheItem,
+) (map[string]transitionGroup, error) {
+	groups := make(map[string]transitionGroup)
+	for _, t := range tasks {
+		taskType := t.Type
+
+		workflow, err := ResolveTransitionForType(app.Context, taskType)
+		if err != nil {
+			return nil, err
+		}
+
+		group := groups[workflow.Start.TransitionKey]
+		if group.ref.TransitionKey == "" {
+			group.ref = workflow.Start
+		}
+		group.items = append(group.items, t)
+		groups[workflow.Start.TransitionKey] = group
+	}
+	return groups, nil
+}
+
+func ResolveTransitionForType(ctx *config.Context, taskType string) (*config.WorkflowMap, error) {
+
+	workflow, err := ctx.GetWorkflowByType(taskType)
+	if err != nil || workflow.Start.TransitionKey == "" {
+		return nil, fmt.Errorf("unable to find workflow for task type '%s': %w", taskType, err)
+		// Should this trigger the auto-resolve for transitions of this type? --> Yes
+		// TODO Attempt to get Workflow config for this task type
+
+	}
+
+	return workflow, nil
 }

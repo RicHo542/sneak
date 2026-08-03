@@ -14,9 +14,10 @@ var (
 )
 
 type Context struct {
-	Remote     RemoteContext     `yaml:"remote"`
-	Bindings   []string          `yaml:"bindings"`
-	Overwrites ContextOverwrites `yaml:"overwrites,omitempty"`
+	Remote      RemoteContext          `yaml:"remote"`
+	Bindings    []string               `yaml:"bindings"`
+	Transitions map[string]WorkflowMap `yaml:"transitions,omitempty"`
+	Overwrites  ContextOverwrites      `yaml:"overwrites,omitempty"`
 }
 
 type RemoteContext struct {
@@ -35,14 +36,23 @@ type RemoteContext struct {
 }
 
 type ContextOverwrites struct {
-	FeatBranchName string             `yaml:"branch_prefix,omitempty"`
-	Transitions    ContextTransitions `yaml:"transitions,omitempty"`
+	FeatBranchName string `yaml:"branch_prefix,omitempty"`
 }
 
-type ContextTransitions struct {
-	Start string `yaml:"start,omitempty"`
-	Close string `yaml:"close,omitempty"`
-	Ship  string `yaml:"ship,omitempty"`
+// TransitionRef describes how to move a work item into a target state.
+// TransitionKey is the provider-specific token required by the API
+// (Jira: the numeric transition ID; Azure: the state name), while
+// DisplayName is a human-readable label of the target state.
+type TransitionRef struct {
+	TransitionKey string `yaml:"transition_key,omitempty"`
+	DisplayName   string `yaml:"display_name,omitempty"`
+}
+
+// WorkflowMap is the two-hop workflow (start, done) for a work item type.
+// The map is keyed by work item type with "default" as the fallback key.
+type WorkflowMap struct {
+	Start TransitionRef `yaml:"start"`
+	Done  TransitionRef `yaml:"done"`
 }
 
 func LoadContext(dir string) (*Context, error) {
@@ -86,4 +96,23 @@ func StoreContextConfig(dir string, config *Context) error {
 	}
 
 	return nil
+}
+
+func (c *Context) GetWorkflowByType(typeName string) (*WorkflowMap, error) {
+	for configTypeName := range c.Transitions {
+		if configTypeName == typeName {
+			workflow := c.Transitions[configTypeName]
+			return &workflow, nil
+		}
+	}
+	return nil, fmt.Errorf("no workflow transition found for type '%s'", typeName)
+}
+
+func (c *Context) GetDefaultWorkflow() (*WorkflowMap, error) {
+	defaultWorkflow, ok := c.Transitions["default"]
+	if !ok {
+		return nil, fmt.Errorf("cannot find default workflow")
+	}
+
+	return &defaultWorkflow, nil
 }
