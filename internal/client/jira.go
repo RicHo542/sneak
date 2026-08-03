@@ -284,6 +284,11 @@ func (c *JiraProviderClient) TransitionWorkItems(
 
 	var failures []string
 	for _, item := range items {
+		if item.Status == ref.DisplayName {
+			// TODO Inform user, or ignore?
+			continue
+		}
+
 		if err := c.transition(item.Key, ref.TransitionKey); err != nil {
 			failures = append(failures, fmt.Sprintf("%s: %v", item.Key, err))
 		}
@@ -295,6 +300,7 @@ func (c *JiraProviderClient) TransitionWorkItems(
 			len(failures), len(items), strings.Join(failures, "\n  "),
 		)
 	}
+
 	return nil
 }
 

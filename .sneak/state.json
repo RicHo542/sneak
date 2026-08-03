@@ -13,15 +13,22 @@
         "id": "10002",
         "key": "SCRUM-3",
         "summary": "Eval Step 1",
-        "status": "Zu erledigen",
+        "status": "In Arbeit",
         "type": "Story",
         "assignee": "RicHo542"
       }
     ],
-    "fetched_at": "2026-08-03T16:34:37.221119+02:00",
+    "fetched_at": "2026-08-03T17:38:21.570864+02:00",
     "bindings": [
       "SCRUM-1"
     ]
   },
-  "active_tasks": null
+  "active_tasks": [
+    {
+      "key": "SCRUM-3",
+      "summary": "Eval Step 1",
+      "status": "In Arbeit",
+      "managed": true
+    }
+  ]
 }

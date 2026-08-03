@@ -21,7 +21,7 @@ type ActiveTask struct {
 }
 
 func stateFilePath(dir string) string {
-	return filepath.Join(dir, LocalConfigDir, "state.json")
+	return filepath.Join(dir, LocalConfigDir, LocalStateFile)
 }
 
 func LoadState(dir string) (*State, error) {
@@ -65,6 +65,11 @@ func SaveState(dir string, state *State) error {
 func (s *State) AddActiveTasks(
 	items []*CacheItem, managed bool, branch string,
 ) {
+
+	if s.ActiveTasks == nil {
+		s.ActiveTasks = make([]ActiveTask, 0)
+	}
+
 	for _, item := range items {
 		at := ActiveTask{
 			Key:     item.Key,

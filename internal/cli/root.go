@@ -55,9 +55,13 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 var configPath string
 
 func initApp(app *App) error {
-	dir, err := os.Getwd()
+	currentDir, err := os.Getwd()
 	if err != nil {
-		return nil
+		return err
+	}
+	dir, err := config.FindProjectDir(currentDir)
+	if err != nil {
+		return err
 	}
 	app.Dir = dir
 

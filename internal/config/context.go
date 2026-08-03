@@ -8,11 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var (
-	LocalConfigDir  = ".sneak"
-	LocalConfigFile = "config.yaml"
-)
-
 type Context struct {
 	Remote      RemoteContext          `yaml:"remote"`
 	Bindings    []string               `yaml:"bindings"`

@@ -101,6 +101,12 @@ func runNonInteractiveStartCommand(
 		if err := app.Client.TransitionWorkItems(app.Context, group.items, group.ref); err != nil {
 			return fmt.Errorf("failed to move work items to in progress: %w", err)
 		}
+
+		// Keeps the cache updated and makes sure
+		// active_tasks will also get the right state
+		for _, item := range group.items {
+			item.Status = group.ref.DisplayName
+		}
 	}
 
 	// Create branch based on the task names
@@ -117,6 +123,10 @@ func runNonInteractiveStartCommand(
 	fmt.Printf("Skipping commenting on task with '%s'", comment)
 
 	app.State.AddActiveTasks(cachedTasks, true, branchName)
+	if err := config.SaveState(app.Dir, app.State); err != nil {
+		fmt.Println("Failed to save tasks to local state")
+	}
+
 	return nil
 }
 

@@ -25,3 +25,7 @@ func PrintBanner() {
 	fmt.Print(textArt)
 	fmt.Println(tagline)
 }
+
+func Printfln(format string, a ...any) {
+	fmt.Printf(format+"\n", a...)
+}

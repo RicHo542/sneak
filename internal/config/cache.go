@@ -39,11 +39,12 @@ func (c *Cache) MatchesBindings(bindings []string) bool {
 }
 
 func (c *Cache) GetByKey(key string) (*CacheItem, error) {
-	for _, item := range c.Items {
-		if item.Key == key {
-			return &item, nil
+	for i := range c.Items {
+		if c.Items[i].Key == key {
+			return &c.Items[i], nil
 		}
 	}
+
 	return nil, fmt.Errorf("item not found in cache.")
 }
 
