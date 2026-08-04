@@ -111,3 +111,11 @@ func (c *Context) GetDefaultWorkflow() (*WorkflowMap, error) {
 
 	return &defaultWorkflow, nil
 }
+
+func (c *Context) SetWorkflowForTaskType(dir string, typeName string, workflow WorkflowMap) {
+	c.Transitions[typeName] = workflow
+
+	if err := StoreContextConfig(dir, c); err != nil {
+		fmt.Printf("Warning: Failed to save local context in '%s'\n", dir)
+	}
+}

@@ -88,3 +88,43 @@ func NormalizeTaskNames(tasks []string) []string {
 
 	return normalizedNames
 }
+
+func ResolveTransitionForTask(
+	app *App, task *config.CacheItem, action string, attempt int,
+) (*config.WorkflowMap, error) {
+
+	workflow, err := app.Context.GetWorkflowByType(task.Type)
+
+	var focusedKey string
+	if workflow != nil {
+		focusedKey = workflow.Start.TransitionKey
+		if action == "close" {
+			focusedKey = workflow.Done.TransitionKey
+		}
+	}
+
+	// Attempt to auto-discover the workflow once for the new task type.
+	// In case the workflow transition cannot be found, error out to the user.
+	if err != nil || focusedKey == "" {
+		discovered, discoverErr := app.Client.DiscoverWorkflowForItem(task)
+		if discoverErr == nil {
+			app.Context.SetWorkflowForTaskType(app.Dir, task.Type, discovered)
+			if attempt < 1 {
+				return ResolveTransitionForTask(
+					app, task, action, attempt+1,
+				)
+			}
+		}
+		if discoverErr == nil {
+			discoverErr = fmt.Errorf(
+				"discovered workflow has no transition for action '%s'", action,
+			)
+		}
+		return nil, fmt.Errorf(
+			"unable to find transition key for action "+
+				"'%s' and type '%s': %w", action, task.Type, discoverErr,
+		)
+	}
+
+	return workflow, nil
+}

@@ -6,8 +6,16 @@ import (
 
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
+	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
+
+// transitionGroup groups work items by the transition key that moves them
+// into their target state, so each group needs only one transition call.
+type transitionGroup struct {
+	ref   config.TransitionRef
+	items []*config.CacheItem
+}
 
 func newStartCmd(app *App) *cobra.Command {
 	var (
@@ -49,37 +57,13 @@ func runStartCommand(
 		return err
 	}
 
+	// Prompt user with interactive selection if no key was provided.
 	if len(tasks) < 1 {
-		return runInteractiveStartCommand(app)
-	}
-
-	// Validate tasks names
-	invalidTasks, invalid := HasInvalidTasks(app, tasks)
-	if invalid {
-		for _, ivTask := range invalidTasks {
-			fmt.Printf("task '%s' cannot be found.\n", ivTask)
+		tasks, err = ui.InteractiveSelectItem(app.State.Cache.Items)
+		if err != nil {
+			return err
 		}
-		return fmt.Errorf("Consider running 'sneak list --refresh' to update.")
 	}
-
-	return runNonInteractiveStartCommand(
-		app, tasks, createBranch, comment,
-	)
-}
-
-func runInteractiveStartCommand(app *App) error { return nil }
-
-// transitionGroup groups work items by the transition key that moves them
-// into their target state, so each group needs only one transition call.
-type transitionGroup struct {
-	ref   config.TransitionRef
-	items []*config.CacheItem
-}
-
-func runNonInteractiveStartCommand(
-	app *App, tasks []string, createBranch bool,
-	comment string,
-) error {
 
 	cachedTasks, err := app.State.Cache.GetByKeyBatch(tasks)
 	if err != nil {
@@ -89,6 +73,16 @@ func runNonInteractiveStartCommand(
 			err,
 		)
 	}
+
+	return processStartCommand(
+		app, cachedTasks, createBranch, comment,
+	)
+}
+
+func processStartCommand(
+	app *App, cachedTasks []*config.CacheItem, createBranch bool,
+	comment string,
+) error {
 
 	// Move tasks to in progress
 	// Identify the transition target for each task by its type
@@ -113,7 +107,7 @@ func runNonInteractiveStartCommand(
 	// Create branch based on the task names
 	branchName := ""
 	if createBranch {
-		createdBranchName, err := createBranchFromTasks(tasks)
+		createdBranchName, err := createBranchFromTasks(cachedTasks)
 		if err != nil {
 			return fmt.Errorf("failed to create branch: %w", err)
 		}
@@ -122,12 +116,9 @@ func runNonInteractiveStartCommand(
 
 	comment = strings.TrimSpace(comment)
 	if comment != "" {
-		if err := app.Client.AddCommentToWorkItems(
-			nil, cachedTasks, comment,
-		); err != nil {
-			// Should this somehow fail?!
-			fmt.Println("Failed to add comments to work items.")
-		}
+		_ = app.Client.AddCommentToWorkItems(
+			app.Context, cachedTasks, comment,
+		)
 	}
 
 	app.State.AddActiveTasks(cachedTasks, true, branchName)
@@ -138,7 +129,7 @@ func runNonInteractiveStartCommand(
 	return nil
 }
 
-func createBranchFromTasks(tasks []string) (string, error) {
+func createBranchFromTasks(tasks []*config.CacheItem) (string, error) {
 	if !git.NewGitClient().IsRepo() {
 		return "", fmt.Errorf("current context does not seem to be a git repository.")
 	}
@@ -158,9 +149,7 @@ func groupTasksByTransition(
 ) (map[string]transitionGroup, error) {
 	groups := make(map[string]transitionGroup)
 	for _, t := range tasks {
-		taskType := t.Type
-
-		workflow, err := ResolveTransitionForType(app.Context, taskType)
+		workflow, err := ResolveTransitionForTask(app, t, "start", 0)
 		if err != nil {
 			return nil, err
 		}
@@ -173,19 +162,4 @@ func groupTasksByTransition(
 		groups[workflow.Start.TransitionKey] = group
 	}
 	return groups, nil
-}
-
-func ResolveTransitionForType(
-	ctx *config.Context, taskType string,
-) (*config.WorkflowMap, error) {
-
-	workflow, err := ctx.GetWorkflowByType(taskType)
-	if err != nil || workflow.Start.TransitionKey == "" {
-		return nil, fmt.Errorf("unable to find workflow for task type '%s': %w", taskType, err)
-		// Should this trigger the auto-resolve for transitions of this type? --> Yes
-		// TODO Attempt to get Workflow config for this task type
-
-	}
-
-	return workflow, nil
 }

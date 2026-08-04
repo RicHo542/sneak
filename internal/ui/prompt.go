@@ -6,8 +6,22 @@ import (
 	"os"
 	"strings"
 
+	"github.com/richo542/sneak/internal/config"
 	"golang.org/x/term"
+
+	"charm.land/huh/v2"
 )
+
+type SelectItem struct {
+	Key   string
+	Label string
+}
+
+var HuhAppTheme = huh.ThemeFunc(huh.ThemeBase16)
+
+func NewThemedAppForm(groups ...*huh.Group) *huh.Form {
+	return huh.NewForm(groups...).WithTheme(HuhAppTheme)
+}
 
 func PromptLine(reader *bufio.Reader, label string) (string, error) {
 	fmt.Printf("%s: ", label)
@@ -16,11 +30,6 @@ func PromptLine(reader *bufio.Reader, label string) (string, error) {
 		return "", fmt.Errorf("read input: %w", err)
 	}
 	return strings.TrimRight(line, "\r\n"), nil
-}
-
-type SelectItem struct {
-	Key   string
-	Label string
 }
 
 func PromptSelect(reader *bufio.Reader, label string, items []SelectItem) (string, error) {
@@ -89,4 +98,37 @@ func ReadSecret() (string, error) {
 		return "", fmt.Errorf("read password: %w", err)
 	}
 	return strings.TrimRight(line, "\r\n"), nil
+}
+
+func InteractiveSelectItem(items []config.CacheItem) ([]string, error) {
+	var selection []string
+
+	var options []huh.Option[string]
+	for _, item := range items {
+		// Only allow selection of unassigned items
+		if item.Assignee == "" {
+			options = append(options, huh.NewOption(
+				fmt.Sprintf("%s: [%s] %s", item.Key, item.Type, item.Summary),
+				item.Key,
+			))
+		}
+	}
+	// +1 for header
+	selectionHeight := min(6, len(options)+1)
+
+	selectBox := NewThemedAppForm(
+		huh.NewGroup(
+			huh.NewMultiSelect[string]().
+				Options(options...).
+				Title("Available Work Items:").
+				Height(selectionHeight).
+				Value(&selection),
+		),
+	).WithShowHelp(true)
+
+	if err := selectBox.Run(); err != nil {
+		return nil, err
+	}
+
+	return selection, nil
 }

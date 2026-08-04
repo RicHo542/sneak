@@ -270,3 +270,9 @@ func (c *AzureProviderClient) getWorkflowForType(
 
 	return wm, nil
 }
+
+func (c AzureProviderClient) DiscoverWorkflowForItem(
+	task *config.CacheItem,
+) (config.WorkflowMap, error) {
+	return config.WorkflowMap{}, fmt.Errorf("sad")
+}

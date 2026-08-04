@@ -167,7 +167,7 @@ func (c *JiraProviderClient) DiscoverWorkflow(
 
 	workflow := make(map[string]config.WorkflowMap)
 	for _, t := range types {
-		wm, err := c.discoverWorkflowForType(issuesByType[t])
+		wm, err := c.discoverWorkflowForIssues(issuesByType[t])
 		if err != nil {
 			return nil, err
 		}
@@ -184,7 +184,7 @@ func (c *JiraProviderClient) DiscoverWorkflow(
 	return workflow, nil
 }
 
-func (c *JiraProviderClient) discoverWorkflowForType(
+func (c *JiraProviderClient) discoverWorkflowForIssues(
 	issues []jiraIssue,
 ) (config.WorkflowMap, error) {
 
@@ -225,6 +225,42 @@ func (c *JiraProviderClient) discoverWorkflowForType(
 	if wm.Start.TransitionKey == "" && wm.Done.TransitionKey == "" && transitionErr != nil {
 		return wm, transitionErr
 	}
+	return wm, nil
+}
+
+func (c *JiraProviderClient) DiscoverWorkflowForItem(
+	task *config.CacheItem,
+) (config.WorkflowMap, error) {
+
+	var wm config.WorkflowMap
+	transitions, err := c.getTransitions(task.Key)
+	if err != nil {
+		return wm, err
+	}
+
+	for _, tr := range transitions {
+		switch tr.To.StatusCategory.Key {
+		case "indeterminate":
+			if wm.Start.TransitionKey == "" {
+				wm.Start = config.TransitionRef{
+					TransitionKey: tr.ID,
+					DisplayName:   tr.To.Name,
+				}
+			}
+		case "done":
+			if wm.Done.TransitionKey == "" {
+				wm.Done = config.TransitionRef{
+					TransitionKey: tr.ID,
+					DisplayName:   tr.To.Name,
+				}
+			}
+		}
+
+		if wm.Start.TransitionKey != "" && wm.Done.TransitionKey != "" {
+			break
+		}
+	}
+
 	return wm, nil
 }
 

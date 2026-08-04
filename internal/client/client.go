@@ -15,6 +15,7 @@ type ProviderClient interface {
 	TestConnection() error
 	ListWorkItems(ctx *config.Context, opts objects.ListOptions) ([]objects.WorkItem, error)
 	DiscoverWorkflow(ctx *config.Context) (map[string]config.WorkflowMap, error)
+	DiscoverWorkflowForItem(task *config.CacheItem) (config.WorkflowMap, error)
 	TransitionWorkItems(ctx *config.Context, items []*config.CacheItem, ref config.TransitionRef) error
 	AddCommentToWorkItems(*config.Context, []*config.CacheItem, string) error
 }

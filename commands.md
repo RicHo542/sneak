@@ -7,11 +7,6 @@ sneak config
 --list -> List available providers with working status
 ```
 
-```bash
-sneak login
--> cli process to setup/update a provider (host, alias, user, pass, pat)
-```
-
 ## Initializing new sneak config in project directory
 
 ```bash
@@ -72,4 +67,13 @@ sneak unassign <task1> <task2> <task3>
 ```bash
 sneak comment <task>
 -m -> Comment to make
+```
+
+## Open a task in browser?
+
+- Lets you open a task in the browser to see all its information
+-
+
+```bash
+sneak open <task>
 ```

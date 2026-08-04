@@ -2,10 +2,18 @@
   "cache": {
     "items": [
       {
+        "id": "10073",
+        "key": "SCRUM-10",
+        "summary": "Fun Fun FUUUUN",
+        "status": "In Arbeit",
+        "type": "Bug",
+        "assignee": ""
+      },
+      {
         "id": "10039",
         "key": "SCRUM-8",
         "summary": "Some other story 2",
-        "status": "Zu erledigen",
+        "status": "In Arbeit",
         "type": "Task",
         "assignee": ""
       },
@@ -42,7 +50,7 @@
         "assignee": "RicHo542"
       }
     ],
-    "fetched_at": "2026-08-04T16:24:52.431366+02:00",
+    "fetched_at": "2026-08-04T18:17:30.056518+02:00",
     "bindings": [
       "SCRUM-1"
     ]
@@ -57,6 +65,24 @@
     {
       "key": "SCRUM-4",
       "summary": "Eval Step 2",
+      "status": "In Arbeit",
+      "managed": true
+    },
+    {
+      "key": "SCRUM-8",
+      "summary": "Some other story 2",
+      "status": "In Arbeit",
+      "managed": true
+    },
+    {
+      "key": "SCRUM-8",
+      "summary": "Some other story 2",
+      "status": "In Arbeit",
+      "managed": true
+    },
+    {
+      "key": "SCRUM-10",
+      "summary": "Fun Fun FUUUUN",
       "status": "In Arbeit",
       "managed": true
     }

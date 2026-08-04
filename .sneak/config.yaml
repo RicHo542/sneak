@@ -5,6 +5,13 @@ remote:
 bindings:
     - SCRUM-1
 transitions:
+    Bug:
+        start:
+            transition_key: "21"
+            display_name: In Arbeit
+        done:
+            transition_key: "41"
+            display_name: Fertig
     Epic:
         start:
             transition_key: "21"
@@ -20,6 +27,13 @@ transitions:
             transition_key: "41"
             display_name: Fertig
     Story:
+        start:
+            transition_key: "21"
+            display_name: In Arbeit
+        done:
+            transition_key: "41"
+            display_name: Fertig
+    Task:
         start:
             transition_key: "21"
             display_name: In Arbeit
