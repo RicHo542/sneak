@@ -13,6 +13,24 @@ import (
 	"github.com/richo542/sneak/internal/config"
 )
 
+type jiraTransitionsResponse struct {
+	Transitions []jiraTransition `json:"transitions"`
+}
+
+type jiraTransition struct {
+	ID   string     `json:"id"`
+	Name string     `json:"name"`
+	To   jiraStatus `json:"to"`
+}
+
+type jiraTransitionRequest struct {
+	Transition jiraTransitionID `json:"transition"`
+}
+
+type jiraTransitionID struct {
+	ID string `json:"id"`
+}
+
 func (c *JiraProviderClient) getTransitions(
 	issueKey string,
 ) ([]jiraTransition, error) {
