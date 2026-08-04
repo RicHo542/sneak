@@ -1,4 +1,4 @@
-package client
+package azure
 
 import (
 	"bytes"
@@ -10,12 +10,26 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/richo542/sneak/internal/client/objects"
 	"github.com/richo542/sneak/internal/config"
 )
 
 type AzureProviderClient struct {
-	cfg    *config.Provider
-	client *http.Client
+	Cfg       *config.Provider
+	Client    *http.Client
+	Endpoints *AzureEndpoints
+}
+
+func NewAzureProviderClient(
+	cfg *config.Provider, client *http.Client,
+) *AzureProviderClient {
+	host := strings.TrimRight(cfg.Host, "/")
+
+	return &AzureProviderClient{
+		Cfg:       cfg,
+		Client:    client,
+		Endpoints: &AzureEndpoints{host: host, apiVersion: "7.0"},
+	}
 }
 
 type azureWIQLRequest struct {
@@ -74,21 +88,37 @@ type azureWorkItemPatch struct {
 }
 
 func (c *AzureProviderClient) TestConnection() error {
-	host := strings.TrimRight(c.cfg.Host, "/")
+	host := strings.TrimRight(c.Cfg.Host, "/")
 	apiURL := host + "/_apis/profile/profiles/me?api-version=7.0"
 
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.cfg.Token)
+	req.SetBasicAuth("", c.Cfg.Token)
 	req.Header.Set("Accept", "application/json")
 
-	return TestRequest(c.client, req)
+	return c.testRequest(req)
 }
 
-func (c *AzureProviderClient) ListWorkItems(ctx *config.Context, opts ListOptions) ([]WorkItem, error) {
-	host := strings.TrimRight(c.cfg.Host, "/")
+func (c *AzureProviderClient) testRequest(req *http.Request) error {
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("connection failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	io.Copy(io.Discard, resp.Body)
+	return nil
+}
+
+func (c *AzureProviderClient) ListWorkItems(ctx *config.Context, opts objects.ListOptions) ([]objects.WorkItem, error) {
+	host := strings.TrimRight(c.Cfg.Host, "/")
 
 	project := ctx.Remote.Project
 	if project == "" {
@@ -102,7 +132,7 @@ func (c *AzureProviderClient) ListWorkItems(ctx *config.Context, opts ListOption
 	}
 
 	if len(ids) == 0 {
-		return []WorkItem{}, nil
+		return []objects.WorkItem{}, nil
 	}
 
 	return c.fetchBatch(host, project, ids)
@@ -120,11 +150,11 @@ func (c *AzureProviderClient) queryWIQL(host, project, query string) ([]int, err
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.cfg.Token)
+	req.SetBasicAuth("", c.Cfg.Token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -151,8 +181,8 @@ func (c *AzureProviderClient) queryWIQL(host, project, query string) ([]int, err
 	return ids, nil
 }
 
-func (c *AzureProviderClient) fetchBatch(host, project string, ids []int) ([]WorkItem, error) {
-	var all []WorkItem
+func (c *AzureProviderClient) fetchBatch(host, project string, ids []int) ([]objects.WorkItem, error) {
+	var all []objects.WorkItem
 	for i := 0; i < len(ids); i += 200 {
 		end := i + 200
 		if end > len(ids) {
@@ -169,7 +199,7 @@ func (c *AzureProviderClient) fetchBatch(host, project string, ids []int) ([]Wor
 	return all, nil
 }
 
-func (c *AzureProviderClient) fetchChunk(host, project string, ids []int) ([]WorkItem, error) {
+func (c *AzureProviderClient) fetchChunk(host, project string, ids []int) ([]objects.WorkItem, error) {
 	idStrs := make([]string, len(ids))
 	for i, id := range ids {
 		idStrs[i] = strconv.Itoa(id)
@@ -181,10 +211,10 @@ func (c *AzureProviderClient) fetchChunk(host, project string, ids []int) ([]Wor
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.cfg.Token)
+	req.SetBasicAuth("", c.Cfg.Token)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -204,9 +234,9 @@ func (c *AzureProviderClient) fetchChunk(host, project string, ids []int) ([]Wor
 		return nil, fmt.Errorf("failed to parse batch response: %w", err)
 	}
 
-	var items []WorkItem
+	var items []objects.WorkItem
 	for _, wi := range batch {
-		item := WorkItem{
+		item := objects.WorkItem{
 			ID:      strconv.Itoa(wi.ID),
 			Key:     fmt.Sprintf("#%d", wi.ID),
 			Summary: wi.Fields.Title,
@@ -221,7 +251,7 @@ func (c *AzureProviderClient) fetchChunk(host, project string, ids []int) ([]Wor
 	return items, nil
 }
 
-func (c *AzureProviderClient) buildWIQL(ctx *config.Context, opts ListOptions) string {
+func (c *AzureProviderClient) buildWIQL(ctx *config.Context, opts objects.ListOptions) string {
 	project := ctx.Remote.Project
 
 	if len(opts.Bindings) > 0 {
@@ -248,7 +278,7 @@ func (c *AzureProviderClient) buildWIQL(ctx *config.Context, opts ListOptions) s
 	return query
 }
 
-func (c *AzureProviderClient) buildRecursiveWIQL(ctx *config.Context, opts ListOptions) string {
+func (c *AzureProviderClient) buildRecursiveWIQL(ctx *config.Context, opts objects.ListOptions) string {
 	project := ctx.Remote.Project
 
 	var where []string
@@ -277,7 +307,7 @@ func (c *AzureProviderClient) DiscoverWorkflow(
 	ctx *config.Context,
 ) (map[string]config.WorkflowMap, error) {
 
-	host := strings.TrimRight(c.cfg.Host, "/")
+	host := strings.TrimRight(c.Cfg.Host, "/")
 	project := ctx.Remote.Project
 	if project == "" {
 		return nil, fmt.Errorf("azure project is required in context")
@@ -315,7 +345,7 @@ func (c *AzureProviderClient) TransitionWorkItems(
 		return fmt.Errorf("cannot transition work items: no target state set")
 	}
 
-	host := strings.TrimRight(c.cfg.Host, "/")
+	host := strings.TrimRight(c.Cfg.Host, "/")
 	project := ctx.Remote.Project
 	if project == "" {
 		return fmt.Errorf("azure project is required in context")
@@ -377,11 +407,11 @@ func (c *AzureProviderClient) transition(
 	if err != nil {
 		return fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.cfg.Token)
+	req.SetBasicAuth("", c.Cfg.Token)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json-patch+json")
 
-	resp, err := c.client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
@@ -406,10 +436,10 @@ func (c *AzureProviderClient) getWorkItemTypes(host, project string) ([]string, 
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.cfg.Token)
+	req.SetBasicAuth("", c.Cfg.Token)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -449,10 +479,10 @@ func (c *AzureProviderClient) getWorkItemTypeStates(
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.cfg.Token)
+	req.SetBasicAuth("", c.Cfg.Token)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -505,4 +535,11 @@ func (c *AzureProviderClient) getWorkflowForType(
 	}
 
 	return wm, nil
+}
+
+func (c *AzureProviderClient) AddCommentToWorkItems(
+	_ *config.Context, items []*config.CacheItem,
+	comment string,
+) error {
+	return nil
 }

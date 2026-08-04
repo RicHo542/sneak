@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/richo542/sneak/internal/client"
+	"github.com/richo542/sneak/internal/client/objects"
 	"github.com/richo542/sneak/internal/config"
 )
 
@@ -27,7 +27,7 @@ func RefreshCache(app *App) error {
 	fmt.Println("Fetching work items...")
 	state := app.State
 
-	items, err := app.Client.ListWorkItems(app.Context, client.ListOptions{
+	items, err := app.Client.ListWorkItems(app.Context, objects.ListOptions{
 		Bindings: app.Context.Bindings,
 	})
 	if err != nil {

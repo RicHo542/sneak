@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
@@ -119,8 +120,15 @@ func runNonInteractiveStartCommand(
 		branchName = createdBranchName
 	}
 
-	// TODO Comment on the tasks if required
-	fmt.Printf("Skipping commenting on task with '%s'", comment)
+	comment = strings.TrimSpace(comment)
+	if comment != "" {
+		if err := app.Client.AddCommentToWorkItems(
+			nil, cachedTasks, comment,
+		); err != nil {
+			// Should this somehow fail?!
+			fmt.Println("Failed to add comments to work items.")
+		}
+	}
 
 	app.State.AddActiveTasks(cachedTasks, true, branchName)
 	if err := config.SaveState(app.Dir, app.State); err != nil {
@@ -167,7 +175,9 @@ func groupTasksByTransition(
 	return groups, nil
 }
 
-func ResolveTransitionForType(ctx *config.Context, taskType string) (*config.WorkflowMap, error) {
+func ResolveTransitionForType(
+	ctx *config.Context, taskType string,
+) (*config.WorkflowMap, error) {
 
 	workflow, err := ctx.GetWorkflowByType(taskType)
 	if err != nil || workflow.Start.TransitionKey == "" {

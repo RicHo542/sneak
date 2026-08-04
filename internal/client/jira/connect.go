@@ -1,4 +1,4 @@
-package client
+package jira
 
 import (
 	"fmt"
@@ -7,7 +7,20 @@ import (
 	"strings"
 )
 
-func TestRequest(client *http.Client, req *http.Request) error {
+func (c *JiraProviderClient) TestConnection() error {
+	apiURL := c.Endpoints.testEndpoint()
+
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return fmt.Errorf("bad request: %w", err)
+	}
+	req.SetBasicAuth(c.Cfg.Username, c.Cfg.Token)
+	req.Header.Set("Accept", "application/json")
+
+	return testRequest(c.Client, req)
+}
+
+func testRequest(client *http.Client, req *http.Request) error {
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("connection failed: %w", err)

@@ -2,10 +2,34 @@
   "cache": {
     "items": [
       {
+        "id": "10039",
+        "key": "SCRUM-8",
+        "summary": "Some other story 2",
+        "status": "Zu erledigen",
+        "type": "Task",
+        "assignee": ""
+      },
+      {
+        "id": "10038",
+        "key": "SCRUM-7",
+        "summary": "Some other story",
+        "status": "Zu erledigen",
+        "type": "Task",
+        "assignee": ""
+      },
+      {
+        "id": "10037",
+        "key": "SCRUM-6",
+        "summary": "My second Feature",
+        "status": "Zu erledigen",
+        "type": "Feature",
+        "assignee": ""
+      },
+      {
         "id": "10003",
         "key": "SCRUM-4",
         "summary": "Eval Step 2",
-        "status": "Zu erledigen",
+        "status": "In Arbeit",
         "type": "Story",
         "assignee": ""
       },
@@ -18,7 +42,7 @@
         "assignee": "RicHo542"
       }
     ],
-    "fetched_at": "2026-08-03T17:38:21.570864+02:00",
+    "fetched_at": "2026-08-04T14:27:49.038512+02:00",
     "bindings": [
       "SCRUM-1"
     ]
@@ -27,6 +51,12 @@
     {
       "key": "SCRUM-3",
       "summary": "Eval Step 1",
+      "status": "In Arbeit",
+      "managed": true
+    },
+    {
+      "key": "SCRUM-4",
+      "summary": "Eval Step 2",
       "status": "In Arbeit",
       "managed": true
     }
