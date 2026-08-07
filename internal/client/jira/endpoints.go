@@ -10,8 +10,15 @@ type JiraEndpoints struct {
 	host       string
 }
 
+func (o *JiraEndpoints) myselfEndpoint() string {
+	return fmt.Sprintf(
+		"%s/rest/api/%s/myself",
+		o.host, o.apiVersion,
+	)
+}
+
 func (o *JiraEndpoints) testEndpoint() string {
-	return fmt.Sprintf("%s/rest/api/%s/myself", o.host, o.apiVersion)
+	return o.myselfEndpoint()
 }
 
 func (o *JiraEndpoints) queryEndpoint() string {

@@ -15,6 +15,13 @@ func (o *AzureEndpoints) testEndpoint() string {
 	return fmt.Sprintf("%s/_apis", o.host)
 }
 
+func (o *AzureEndpoints) connectionDataEndpoint() string {
+	return fmt.Sprintf(
+		"%s/_apis/ConnectionData?api-version=%s",
+		o.host, o.apiVersion,
+	)
+}
+
 func (o *AzureEndpoints) wiqlEndpoint(project string) string {
 	return fmt.Sprintf(
 		"%s/%s/_apis/wit/wiql?api-version=%s",

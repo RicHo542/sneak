@@ -20,7 +20,6 @@ type App struct {
 	Context  *config.Context
 	State    *config.State
 	Dir      string
-	Verbose  bool
 }
 
 func NewRootCmd(info BuildInfo) *cobra.Command {
@@ -37,9 +36,6 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	root.PersistentFlags().StringVar(&configPath, "config", "", "path to sneak config dir (default ~/.sneak)")
-	root.PersistentFlags().BoolVarP(&app.Verbose, "verbose", "v", false, "verbose output")
-
 	root.AddCommand(
 		newVersionCmd(info),
 		newHelpCmd(),
@@ -53,8 +49,6 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 
 	return root
 }
-
-var configPath string
 
 func initApp(app *App) error {
 	currentDir, err := os.Getwd()

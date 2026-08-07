@@ -46,8 +46,8 @@ func runConfigList() error {
 		return nil
 	}
 
-	fmt.Printf("%-16s  %-8s  %-40s  %s\n", "ALIAS", "TYPE", "HOST", "STATUS")
-	fmt.Println(strings.Repeat("-", 80))
+	fmt.Printf("%-16s  %-8s  %-40s  %-24s  %s\n", "ALIAS", "TYPE", "HOST", "USER", "STATUS")
+	fmt.Println(strings.Repeat("-", 96))
 
 	for _, p := range cfg.Providers {
 		status := "not tested"
@@ -62,7 +62,7 @@ func runConfigList() error {
 		} else {
 			status = "ok"
 		}
-		fmt.Printf("%-16s  %-8s  %-40s  %s\n", p.Alias, p.Type, p.Host, status)
+		fmt.Printf("%-16s  %-8s  %-40s  %-24s  %s\n", p.Alias, p.Type, p.Host, p.UserHandle, status)
 	}
 
 	return nil
@@ -136,6 +136,13 @@ func runConfigSetup() error {
 		}
 	} else {
 		fmt.Println("ok")
+	}
+
+	if userHandle, err := providerClient.GetUserIdent(); err == nil {
+		provider.UserHandle = userHandle
+		fmt.Printf("Authenticated as: %s\n", userHandle)
+	} else {
+		fmt.Printf("Warning: could not resolve current user: %v\n", err)
 	}
 
 	if err := persistProvider(provider); err != nil {

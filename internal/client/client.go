@@ -13,6 +13,7 @@ import (
 
 type ProviderClient interface {
 	TestConnection() error
+	GetUserIdent() (string, error)
 	ListWorkItems(ctx *config.Context, opts objects.ListOptions) ([]objects.WorkItem, error)
 	DiscoverWorkflow(ctx *config.Context) (map[string]config.WorkflowMap, error)
 	DiscoverWorkflowForItem(task *config.CacheItem) (config.WorkflowMap, error)
