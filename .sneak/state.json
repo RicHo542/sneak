@@ -7,7 +7,7 @@
         "summary": "Fun Fun FUUUUN",
         "status": "In Arbeit",
         "type": "Bug",
-        "assignee": ""
+        "assignee": "RicHo542"
       },
       {
         "id": "10039",
@@ -15,7 +15,7 @@
         "summary": "Some other story 2",
         "status": "In Arbeit",
         "type": "Task",
-        "assignee": ""
+        "assignee": "RicHo542"
       },
       {
         "id": "10038",
@@ -50,7 +50,7 @@
         "assignee": "RicHo542"
       }
     ],
-    "fetched_at": "2026-08-07T19:38:15.57677+02:00",
+    "fetched_at": "2026-08-07T20:14:35.452792+02:00",
     "bindings": [
       "SCRUM-1"
     ]
@@ -89,6 +89,18 @@
     {
       "key": "SCRUM-7",
       "summary": "Some other story",
+      "status": "In Arbeit",
+      "managed": true
+    },
+    {
+      "key": "SCRUM-10",
+      "summary": "Fun Fun FUUUUN",
+      "status": "In Arbeit",
+      "managed": true
+    },
+    {
+      "key": "SCRUM-8",
+      "summary": "Some other story 2",
       "status": "In Arbeit",
       "managed": true
     }

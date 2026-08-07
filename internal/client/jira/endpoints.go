@@ -43,3 +43,11 @@ func (o *JiraEndpoints) commentEndpoint(issueKey string) string {
 		url.PathEscape(issueKey),
 	)
 }
+
+func (o *JiraEndpoints) assignEndpoint(issueKey string) string {
+	return fmt.Sprintf(
+		"%s/rest/api/%s/issue/%s/assignee",
+		o.host, o.apiVersion,
+		url.PathEscape(issueKey),
+	)
+}

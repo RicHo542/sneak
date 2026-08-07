@@ -19,6 +19,7 @@ type ProviderClient interface {
 	DiscoverWorkflowForItem(task *config.CacheItem) (config.WorkflowMap, error)
 	TransitionWorkItems(ctx *config.Context, items []*config.CacheItem, ref config.TransitionRef) error
 	AddCommentToWorkItems(*config.Context, []*config.CacheItem, string) error
+	AssignWorkItems(ctx *config.Context, items []*config.CacheItem) error
 }
 
 func NewProviderClient(p *config.Provider) (ProviderClient, error) {

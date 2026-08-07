@@ -50,6 +50,12 @@ func (o *AzureEndpoints) workItemCommentsEndpoint(project string, id int) string
 	)
 }
 
+// assignEndpoint reuses workItemEndpoint: Azure has no dedicated assign URL,
+// assignment is a field update (PATCH) on the work item.
+func (o *AzureEndpoints) assignEndpoint(project string, id int) string {
+	return o.workItemEndpoint(project, id)
+}
+
 func (o *AzureEndpoints) workItemTypesEndpoint(project string) string {
 	return fmt.Sprintf(
 		"%s/%s/_apis/wit/workitemtypes?api-version=%s",
