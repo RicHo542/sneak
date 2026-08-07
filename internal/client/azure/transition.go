@@ -112,7 +112,7 @@ func (c *AzureProviderClient) transition(
 	if err != nil {
 		return fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.Cfg.Token)
+	c.SetAuthHeader(req)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json-patch+json")
 
@@ -173,7 +173,7 @@ func (c *AzureProviderClient) getWorkItemTypes(project string) ([]string, error)
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.Cfg.Token)
+	c.SetAuthHeader(req)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.Client.Do(req)
@@ -213,7 +213,7 @@ func (c *AzureProviderClient) getWorkItemTypeStates(
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.Cfg.Token)
+	c.SetAuthHeader(req)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.Client.Do(req)

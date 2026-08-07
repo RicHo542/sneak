@@ -82,3 +82,41 @@ func (s *State) AddActiveTasks(
 		s.ActiveTasks = append(s.ActiveTasks, at)
 	}
 }
+
+// RemoveActiveTasks removed the supplied slice of cache items from
+// the active tracking in the state. This is done based on issue key
+// of the cache item.
+func (s *State) RemoveActiveTasks(items []*CacheItem) {
+	if s.ActiveTasks == nil {
+		return
+	}
+
+	removeCandidates := make(map[string]struct{}, len(items))
+	for _, it := range items {
+		removeCandidates[it.Key] = struct{}{}
+	}
+
+	kept := s.ActiveTasks[:0]
+	for _, at := range s.ActiveTasks {
+		if _, ok := removeCandidates[at.Key]; !ok {
+			kept = append(kept, at)
+		}
+	}
+
+	s.ActiveTasks = kept
+}
+
+// GetActiveCacheItems resolves the active tasks back to their cached work
+// items. The returned pointers reference the cache entries directly, so
+// mutating them also keeps the cache in sync.
+func (s *State) GetActiveCacheItems() ([]*CacheItem, error) {
+	var items []*CacheItem
+	for _, at := range s.ActiveTasks {
+		item, err := s.Cache.GetByKey(at.Key)
+		if err != nil {
+			return nil, fmt.Errorf("active task '%s' not found in cache: %w", at.Key, err)
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}

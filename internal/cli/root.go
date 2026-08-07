@@ -48,6 +48,7 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		newListCmd(app),
 		newStartCmd(app),
 		newCommentCmd(app),
+		newCloseCmd(app),
 	)
 
 	return root

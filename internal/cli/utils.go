@@ -89,6 +89,26 @@ func NormalizeTaskNames(tasks []string) []string {
 	return normalizedNames
 }
 
+func GroupTasksByTransition(
+	app *App, tasks []*config.CacheItem, action string,
+) (map[string]transitionGroup, error) {
+	groups := make(map[string]transitionGroup)
+	for _, t := range tasks {
+		workflow, err := ResolveTransitionForTask(app, t, action, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		group := groups[workflow.Start.TransitionKey]
+		if group.ref.TransitionKey == "" {
+			group.ref = workflow.Start
+		}
+		group.items = append(group.items, t)
+		groups[workflow.Start.TransitionKey] = group
+	}
+	return groups, nil
+}
+
 func ResolveTransitionForTask(
 	app *App, task *config.CacheItem, action string, attempt int,
 ) (*config.WorkflowMap, error) {
@@ -127,4 +147,36 @@ func ResolveTransitionForTask(
 	}
 
 	return workflow, nil
+}
+
+func TransitionCacheItems(
+	app *App, cacheItems []*config.CacheItem, action string,
+) error {
+	// Move tasks to in progress
+	// Identify the transition target for each task by its type
+	// Build groups with transitionKey -> work items
+	groups, err := GroupTasksByTransition(app, cacheItems, action)
+	if err != nil {
+		return err
+	}
+
+	for _, group := range groups {
+		if err := app.Client.TransitionWorkItems(
+			app.Context, group.items,
+			group.ref,
+		); err != nil {
+			return fmt.Errorf(
+				"failed to move work items to new state "+
+					"for action '%s': %w", action, err,
+			)
+		}
+
+		// Keeps the cache updated and makes sure
+		// active_tasks will also get the right state
+		for _, item := range group.items {
+			item.Status = group.ref.DisplayName
+		}
+	}
+
+	return nil
 }

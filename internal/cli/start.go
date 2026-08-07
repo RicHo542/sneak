@@ -84,24 +84,8 @@ func processStartCommand(
 	comment string,
 ) error {
 
-	// Move tasks to in progress
-	// Identify the transition target for each task by its type
-	// Build groups with transitionKey -> work items
-	groups, err := groupTasksByTransition(app, cachedTasks)
-	if err != nil {
+	if err := TransitionCacheItems(app, cachedTasks, "start"); err != nil {
 		return err
-	}
-
-	for _, group := range groups {
-		if err := app.Client.TransitionWorkItems(app.Context, group.items, group.ref); err != nil {
-			return fmt.Errorf("failed to move work items to in progress: %w", err)
-		}
-
-		// Keeps the cache updated and makes sure
-		// active_tasks will also get the right state
-		for _, item := range group.items {
-			item.Status = group.ref.DisplayName
-		}
 	}
 
 	// Create branch based on the task names
@@ -142,24 +126,4 @@ func createBranchFromTasks(tasks []*config.CacheItem) (string, error) {
 	}
 
 	return branchName, nil
-}
-
-func groupTasksByTransition(
-	app *App, tasks []*config.CacheItem,
-) (map[string]transitionGroup, error) {
-	groups := make(map[string]transitionGroup)
-	for _, t := range tasks {
-		workflow, err := ResolveTransitionForTask(app, t, "start", 0)
-		if err != nil {
-			return nil, err
-		}
-
-		group := groups[workflow.Start.TransitionKey]
-		if group.ref.TransitionKey == "" {
-			group.ref = workflow.Start
-		}
-		group.items = append(group.items, t)
-		groups[workflow.Start.TransitionKey] = group
-	}
-	return groups, nil
 }

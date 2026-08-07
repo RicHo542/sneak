@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -40,4 +41,12 @@ func azureWorkItemToObject(wi azureBatchWorkItem) objects.WorkItem {
 		item.Assignee = wi.Fields.Assignee.DisplayName
 	}
 	return item
+}
+
+func (c *AzureProviderClient) SetAuthHeader(req *http.Request) {
+	tokenStr := fmt.Sprintf(":%s", c.Cfg.Token)
+	req.SetBasicAuth(
+		"",
+		base64.StdEncoding.EncodeToString([]byte(tokenStr)),
+	)
 }

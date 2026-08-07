@@ -49,7 +49,7 @@ func (c *AzureProviderClient) AddCommentToWorkItems(
 			continue
 		}
 
-		req.SetBasicAuth("", c.Cfg.Token)
+		c.SetAuthHeader(req)
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("Content-Type", "application/json")
 

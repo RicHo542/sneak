@@ -85,7 +85,7 @@ func (c *AzureProviderClient) queryWIQL(
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.Cfg.Token)
+	c.SetAuthHeader(req)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
@@ -157,7 +157,7 @@ func (c *AzureProviderClient) fetchChunk(
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.Cfg.Token)
+	c.SetAuthHeader(req)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.Client.Do(req)

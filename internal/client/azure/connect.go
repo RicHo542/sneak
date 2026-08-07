@@ -14,7 +14,7 @@ func (c *AzureProviderClient) TestConnection() error {
 	if err != nil {
 		return fmt.Errorf("bad request: %w", err)
 	}
-	req.SetBasicAuth("", c.Cfg.Token)
+	c.SetAuthHeader(req)
 	req.Header.Set("Accept", "application/json")
 
 	return c.testRequest(req)
