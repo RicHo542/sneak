@@ -11,7 +11,7 @@ import (
 
 func CheckAndRefreshCache(app *App, refresh bool) (bool, error) {
 	state := app.State
-	bindingsChanged := !state.Cache.MatchesBindings(app.Context.Bindings)
+	bindingsChanged := !state.Cache.MatchesBindings(app.LocalContext.Bindings)
 	needsFetch := refresh || bindingsChanged || !state.Cache.IsFresh()
 
 	if needsFetch {
@@ -27,8 +27,8 @@ func RefreshCache(app *App) error {
 	fmt.Println("Fetching work items...")
 	state := app.State
 
-	items, err := app.Client.ListWorkItems(app.Context, objects.ListOptions{
-		Bindings: app.Context.Bindings,
+	items, err := app.Client.ListWorkItems(app.Ctx, app.LocalContext, objects.ListOptions{
+		Bindings: app.LocalContext.Bindings,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to fetch work items: %w", err)
@@ -49,7 +49,7 @@ func RefreshCache(app *App) error {
 	state.Cache = config.Cache{
 		Items:     cacheItems,
 		FetchedAt: time.Now(),
-		Bindings:  app.Context.Bindings,
+		Bindings:  app.LocalContext.Bindings,
 	}
 
 	if err := config.SaveState(app.Dir, state); err != nil {
@@ -113,7 +113,7 @@ func ResolveTransitionForTask(
 	app *App, task *config.CacheItem, action string, attempt int,
 ) (*config.WorkflowMap, error) {
 
-	workflow, err := app.Context.GetWorkflowByType(task.Type)
+	workflow, err := app.LocalContext.GetWorkflowByType(task.Type)
 
 	var focusedKey string
 	if workflow != nil {
@@ -126,9 +126,9 @@ func ResolveTransitionForTask(
 	// Attempt to auto-discover the workflow once for the new task type.
 	// In case the workflow transition cannot be found, error out to the user.
 	if err != nil || focusedKey == "" {
-		discovered, discoverErr := app.Client.DiscoverWorkflowForItem(task)
+		discovered, discoverErr := app.Client.DiscoverWorkflowForItem(app.Ctx, task)
 		if discoverErr == nil {
-			app.Context.SetWorkflowForTaskType(app.Dir, task.Type, discovered)
+			app.LocalContext.SetWorkflowForTaskType(app.Dir, task.Type, discovered)
 			if attempt < 1 {
 				return ResolveTransitionForTask(
 					app, task, action, attempt+1,
@@ -162,7 +162,7 @@ func TransitionCacheItems(
 
 	for _, group := range groups {
 		if err := app.Client.TransitionWorkItems(
-			app.Context, group.items,
+			app.Ctx, app.LocalContext, group.items,
 			group.ref,
 		); err != nil {
 			return fmt.Errorf(

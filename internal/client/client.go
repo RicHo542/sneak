@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -14,12 +15,12 @@ import (
 type ProviderClient interface {
 	TestConnection() error
 	GetUserIdent() (string, error)
-	ListWorkItems(ctx *config.Context, opts objects.ListOptions) ([]objects.WorkItem, error)
-	DiscoverWorkflow(ctx *config.Context) (map[string]config.WorkflowMap, error)
-	DiscoverWorkflowForItem(task *config.CacheItem) (config.WorkflowMap, error)
-	TransitionWorkItems(ctx *config.Context, items []*config.CacheItem, ref config.TransitionRef) error
-	AddCommentToWorkItems(*config.Context, []*config.CacheItem, string) error
-	AssignWorkItems(ctx *config.Context, items []*config.CacheItem) error
+	ListWorkItems(context.Context, *config.LocalContext, objects.ListOptions) ([]objects.WorkItem, error)
+	DiscoverWorkflow(context.Context, *config.LocalContext) (map[string]config.WorkflowMap, error)
+	DiscoverWorkflowForItem(context.Context, *config.CacheItem) (config.WorkflowMap, error)
+	TransitionWorkItems(context.Context, *config.LocalContext, []*config.CacheItem, config.TransitionRef) error
+	AddCommentToWorkItems(context.Context, *config.LocalContext, []*config.CacheItem, string) error
+	AssignWorkItems(context.Context, *config.LocalContext, []*config.CacheItem) error
 }
 
 func NewProviderClient(p *config.Provider) (ProviderClient, error) {

@@ -2,6 +2,7 @@ package azure
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,9 +14,12 @@ import (
 
 // AssignWorkItems assigns the given work items to the authenticated user,
 // whose assignable handle is stored in the provider config (UserHandle).
-func (c *AzureProviderClient) AssignWorkItems(ctx *config.Context, items []*config.CacheItem) error {
+func (c *AzureProviderClient) AssignWorkItems(
+	ctx context.Context, lctx *config.LocalContext,
+	items []*config.CacheItem,
+) error {
 
-	project := ctx.Remote.Project
+	project := lctx.Remote.Project
 	if project == "" {
 		return fmt.Errorf("azure project is required in context")
 	}
@@ -39,7 +43,7 @@ func (c *AzureProviderClient) AssignWorkItems(ctx *config.Context, items []*conf
 
 		apiURL := c.Endpoints.assignEndpoint(project, id)
 
-		req, err := http.NewRequest("PATCH", apiURL, bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(ctx, "PATCH", apiURL, bytes.NewReader(payload))
 		if err != nil {
 			fails = append(fails, fmt.Sprintf("%s: %v", item.Key, err))
 			continue

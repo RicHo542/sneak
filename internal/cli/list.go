@@ -24,7 +24,7 @@ Uses a local cache (1hr TTL) for fast results.
 Use --refresh to force a live fetch from the provider.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			if app.Context == nil {
+			if app.LocalContext == nil {
 				return fmt.Errorf("not initialized: run 'sneak init' first")
 			}
 

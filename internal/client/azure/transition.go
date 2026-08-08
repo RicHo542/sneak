@@ -2,6 +2,7 @@ package azure
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -42,14 +43,14 @@ type azureWorkItemPatch struct {
 // ref.TransitionKey (the target state name) is used; work item keys may be
 // given as "#123" or plain numeric IDs.
 func (c *AzureProviderClient) TransitionWorkItems(
-	ctx *config.Context, items []*config.CacheItem,
-	ref config.TransitionRef,
+	ctx context.Context, lctx *config.LocalContext,
+	items []*config.CacheItem, ref config.TransitionRef,
 ) error {
 	if ref.TransitionKey == "" {
 		return fmt.Errorf("cannot transition work items: no target state set")
 	}
 
-	project := ctx.Remote.Project
+	project := lctx.Remote.Project
 	if project == "" {
 		return fmt.Errorf("azure project is required in context")
 	}
@@ -65,7 +66,7 @@ func (c *AzureProviderClient) TransitionWorkItems(
 			failures = append(failures, fmt.Sprintf("%s: %v", item.Key, err))
 			continue
 		}
-		if err := c.transition(project, id, ref.TransitionKey); err != nil {
+		if err := c.transition(ctx, project, id, ref.TransitionKey); err != nil {
 			failures = append(failures, fmt.Sprintf("%s: %v", item.Key, err))
 		}
 	}
@@ -94,8 +95,7 @@ func azureWorkItemID(key string) (int, error) {
 }
 
 func (c *AzureProviderClient) transition(
-	project string, id int,
-	state string,
+	ctx context.Context, project string, id int, state string,
 ) error {
 	apiURL := c.Endpoints.workItemEndpoint(project, id)
 
@@ -108,7 +108,7 @@ func (c *AzureProviderClient) transition(
 		return fmt.Errorf("bad request body: %w", err)
 	}
 
-	req, err := http.NewRequest("PATCH", apiURL, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", apiURL, bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("bad request: %w", err)
 	}
@@ -137,22 +137,22 @@ func (c *AzureProviderClient) transition(
 // DiscoverWorkflow resolves start/done states per work item type from the
 // static state definitions (no issue sampling required).
 func (c *AzureProviderClient) DiscoverWorkflow(
-	ctx *config.Context,
+	ctx context.Context, lctx *config.LocalContext,
 ) (map[string]config.WorkflowMap, error) {
 
-	project := ctx.Remote.Project
+	project := lctx.Remote.Project
 	if project == "" {
 		return nil, fmt.Errorf("azure project is required in context")
 	}
 
-	types, err := c.getWorkItemTypes(project)
+	types, err := c.getWorkItemTypes(ctx, project)
 	if err != nil {
 		return nil, err
 	}
 
 	workflow := make(map[string]config.WorkflowMap)
 	for _, t := range types {
-		wm, err := c.getWorkflowForType(project, t)
+		wm, err := c.getWorkflowForType(ctx, project, t)
 		if err != nil {
 			return nil, err
 		}
@@ -166,10 +166,12 @@ func (c *AzureProviderClient) DiscoverWorkflow(
 	return workflow, nil
 }
 
-func (c *AzureProviderClient) getWorkItemTypes(project string) ([]string, error) {
+func (c *AzureProviderClient) getWorkItemTypes(
+	ctx context.Context, project string,
+) ([]string, error) {
 	apiURL := c.Endpoints.workItemTypesEndpoint(project)
 
-	req, err := http.NewRequest("GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
@@ -204,12 +206,12 @@ func (c *AzureProviderClient) getWorkItemTypes(project string) ([]string, error)
 }
 
 func (c *AzureProviderClient) getWorkItemTypeStates(
-	project, workItemType string,
+	ctx context.Context, project string, workItemType string,
 ) ([]azureWorkItemState, error) {
 
 	apiURL := c.Endpoints.workItemTypeStatesEndpoint(project, workItemType)
 
-	req, err := http.NewRequest("GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
@@ -240,10 +242,10 @@ func (c *AzureProviderClient) getWorkItemTypeStates(
 }
 
 func (c *AzureProviderClient) getWorkflowForType(
-	project, workItemType string,
+	ctx context.Context, project, workItemType string,
 ) (config.WorkflowMap, error) {
 
-	states, err := c.getWorkItemTypeStates(project, workItemType)
+	states, err := c.getWorkItemTypeStates(ctx, project, workItemType)
 	if err != nil {
 		return config.WorkflowMap{}, err
 	}
@@ -271,8 +273,15 @@ func (c *AzureProviderClient) getWorkflowForType(
 	return wm, nil
 }
 
-func (c AzureProviderClient) DiscoverWorkflowForItem(
-	task *config.CacheItem,
+// DiscoverWorkflowForItem resolves start/done states for a single work item.
+// Azure states are static per work item type (no per-item sampling like Jira),
+// so the workflow is resolved from the type's state definitions.
+func (c *AzureProviderClient) DiscoverWorkflowForItem(
+	ctx context.Context, task *config.CacheItem,
 ) (config.WorkflowMap, error) {
-	return config.WorkflowMap{}, fmt.Errorf("sad")
+	// TODO: requires a project handle, which is not available on CacheItem.
+	return config.WorkflowMap{}, fmt.Errorf(
+		"azure workflows are resolved statically per work item type, "+
+			"cannot discover for item %q without a project", task.Key,
+	)
 }

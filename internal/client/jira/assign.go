@@ -2,6 +2,7 @@ package jira
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ type jiraAssignRequest struct {
 	AccountId string `json:"accountId"`
 }
 
-func (c *JiraProviderClient) AssignWorkItems(_ *config.Context, items []*config.CacheItem) error {
+func (c *JiraProviderClient) AssignWorkItems(ctx context.Context, _ *config.LocalContext, items []*config.CacheItem) error {
 
 	payload, err := json.Marshal(jiraAssignRequest{
 		AccountId: c.Cfg.UserHandle,
@@ -28,7 +29,7 @@ func (c *JiraProviderClient) AssignWorkItems(_ *config.Context, items []*config.
 	for _, item := range items {
 		url := c.Endpoints.assignEndpoint(item.Key)
 
-		req, err := http.NewRequest("PUT", url, bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(payload))
 		if err != nil {
 			fails = append(fails, fmt.Sprintf("%s: %v", item.Key, err))
 			continue

@@ -1,6 +1,7 @@
 package jira
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -50,19 +51,19 @@ type jiraUserValue struct {
 }
 
 func (c *JiraProviderClient) ListWorkItems(
-	ctx *config.Context, opts objects.ListOptions,
+	ctx context.Context, lctx *config.LocalContext, opts objects.ListOptions,
 ) ([]objects.WorkItem, error) {
 
 	if len(opts.Bindings) == 0 {
 		return nil, fmt.Errorf("no bindings specified. Please specify bindings in 'sneak init'.")
 	}
 
-	return c.listRecursive(ctx, opts.Bindings, opts.Types)
+	return c.listRecursive(ctx, lctx, opts.Bindings, opts.Types)
 }
 
 func (c *JiraProviderClient) listRecursive(
-	ctx *config.Context, bindings []string,
-	types []string,
+	ctx context.Context, lctx *config.LocalContext,
+	bindings []string, types []string,
 ) ([]objects.WorkItem, error) {
 
 	seen := make(map[string]bool)
@@ -75,8 +76,8 @@ func (c *JiraProviderClient) listRecursive(
 	// all returned API pages to  ensure also long lists of children
 	// are parsed properly.
 	for len(current) > 0 {
-		jql := AssignedChildrenJql(ctx.Remote.Project, current, types)
-		children, err := c.queryApiRecursive(jql, "summary,status,issuetype,assignee")
+		jql := AssignedChildrenJql(lctx.Remote.Project, current, types)
+		children, err := c.queryApiRecursive(ctx, jql, "summary,status,issuetype,assignee")
 		if err != nil {
 			return nil, err
 		}
@@ -97,10 +98,10 @@ func (c *JiraProviderClient) listRecursive(
 }
 
 func (c *JiraProviderClient) queryApiRecursive(
-	jql string, fields string,
+	ctx context.Context, jql string, fields string,
 ) ([]objects.WorkItem, error) {
 
-	issues, err := c.searchRaw(jql, fields)
+	issues, err := c.searchRaw(ctx, jql, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -114,13 +115,13 @@ func (c *JiraProviderClient) queryApiRecursive(
 
 // searchRaw fetches all pages of a search query and returns the raw issues.
 func (c *JiraProviderClient) searchRaw(
-	jql string, fields string,
+	ctx context.Context, jql string, fields string,
 ) ([]jiraIssue, error) {
 	var all []jiraIssue
 	var nextPageToken string
 
 	for {
-		issues, token, err := c.queryApi(jql, fields, nextPageToken)
+		issues, token, err := c.queryApi(ctx, jql, fields, nextPageToken)
 		if err != nil {
 			return nil, err
 		}
@@ -138,8 +139,8 @@ func (c *JiraProviderClient) searchRaw(
 }
 
 func (c *JiraProviderClient) queryApi(
-	jql string, fields string,
-	nextPageToken string,
+	ctx context.Context, jql string,
+	fields string, nextPageToken string,
 ) ([]jiraIssue, string, error) {
 
 	params := url.Values{}
@@ -153,7 +154,7 @@ func (c *JiraProviderClient) queryApi(
 
 	apiURL := c.Endpoints.queryEndpoint() + "?" + params.Encode()
 
-	req, err := http.NewRequest("GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("bad request: %w", err)
 	}

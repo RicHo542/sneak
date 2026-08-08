@@ -34,7 +34,7 @@ Use '-b' to also create a new feature branch to directly create.
 Use '-m' to comment on the work item.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			if app.Context == nil {
+			if app.LocalContext == nil {
 				return fmt.Errorf("not initialized: run 'sneak init' first")
 			}
 
@@ -103,7 +103,7 @@ func processStartCommand(
 	comment = strings.TrimSpace(comment)
 	if comment != "" {
 		_ = app.Client.AddCommentToWorkItems(
-			app.Context, cachedTasks, comment,
+			app.Ctx, app.LocalContext, cachedTasks, comment,
 		)
 	}
 
@@ -117,11 +117,6 @@ func processStartCommand(
 
 func transitionAndAssignItems(app *App, items []*config.CacheItem) error {
 
-	/*
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-	*/
-
 	var wg sync.WaitGroup
 	errorChannel := make(chan error, 2)
 
@@ -133,7 +128,7 @@ func transitionAndAssignItems(app *App, items []*config.CacheItem) error {
 	})
 
 	wg.Go(func() {
-		err := app.Client.AssignWorkItems(app.Context, items)
+		err := app.Client.AssignWorkItems(app.Ctx, app.LocalContext, items)
 		if err != nil {
 			errorChannel <- err
 		}

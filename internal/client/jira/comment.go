@@ -2,6 +2,7 @@ package jira
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,8 +28,8 @@ type jiraCommentRequest struct {
 // AddCommentToWorkItems posts the given comment to each of
 // the passed work item.
 func (c *JiraProviderClient) AddCommentToWorkItems(
-	_ *config.Context, items []*config.CacheItem,
-	comment string,
+	ctx context.Context, _ *config.LocalContext,
+	items []*config.CacheItem, comment string,
 ) error {
 	comment = strings.TrimSpace(comment)
 
@@ -53,7 +54,7 @@ func (c *JiraProviderClient) AddCommentToWorkItems(
 	for _, item := range items {
 		apiURL := c.Endpoints.commentEndpoint(item.Key)
 
-		req, err := http.NewRequest("POST", apiURL, bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(payload))
 		if err != nil {
 			failures = append(failures, fmt.Sprintf("%s: %v", item.Key, err))
 			continue

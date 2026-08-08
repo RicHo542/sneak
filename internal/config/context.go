@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Context struct {
+type LocalContext struct {
 	Remote      RemoteContext          `yaml:"remote"`
 	Bindings    []string               `yaml:"bindings"`
 	Transitions map[string]WorkflowMap `yaml:"transitions,omitempty"`
@@ -50,7 +50,7 @@ type WorkflowMap struct {
 	Done  TransitionRef `yaml:"done"`
 }
 
-func LoadContext(dir string) (*Context, error) {
+func LoadContext(dir string) (*LocalContext, error) {
 	configPath := filepath.Join(dir, LocalConfigDir, LocalConfigFile)
 
 	data, err := os.ReadFile(configPath)
@@ -58,7 +58,7 @@ func LoadContext(dir string) (*Context, error) {
 		return nil, fmt.Errorf("failed to read %s: run 'sneak init' first", configPath)
 	}
 
-	var ctx Context
+	var ctx LocalContext
 	if err := yaml.Unmarshal(data, &ctx); err != nil {
 		return nil, fmt.Errorf("failed to parse %s: %w", configPath, err)
 	}
@@ -66,7 +66,7 @@ func LoadContext(dir string) (*Context, error) {
 	return &ctx, nil
 }
 
-func StoreContextConfig(dir string, config *Context) error {
+func StoreContextConfig(dir string, config *LocalContext) error {
 	info, err := os.Stat(dir)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func StoreContextConfig(dir string, config *Context) error {
 	return nil
 }
 
-func (c *Context) GetWorkflowByType(typeName string) (*WorkflowMap, error) {
+func (c *LocalContext) GetWorkflowByType(typeName string) (*WorkflowMap, error) {
 	for configTypeName := range c.Transitions {
 		if configTypeName == typeName {
 			workflow := c.Transitions[configTypeName]
@@ -103,7 +103,7 @@ func (c *Context) GetWorkflowByType(typeName string) (*WorkflowMap, error) {
 	return nil, fmt.Errorf("no workflow transition found for type '%s'", typeName)
 }
 
-func (c *Context) GetDefaultWorkflow() (*WorkflowMap, error) {
+func (c *LocalContext) GetDefaultWorkflow() (*WorkflowMap, error) {
 	defaultWorkflow, ok := c.Transitions["default"]
 	if !ok {
 		return nil, fmt.Errorf("cannot find default workflow")
@@ -112,7 +112,7 @@ func (c *Context) GetDefaultWorkflow() (*WorkflowMap, error) {
 	return &defaultWorkflow, nil
 }
 
-func (c *Context) SetWorkflowForTaskType(dir string, typeName string, workflow WorkflowMap) {
+func (c *LocalContext) SetWorkflowForTaskType(dir string, typeName string, workflow WorkflowMap) {
 	c.Transitions[typeName] = workflow
 
 	if err := StoreContextConfig(dir, c); err != nil {

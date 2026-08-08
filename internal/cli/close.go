@@ -24,7 +24,7 @@ Use '-a' to close all active tasks, managed by sneak.
 Use '-m' to comment on the work items.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			if app.Context == nil {
+			if app.LocalContext == nil {
 				return fmt.Errorf("not initialized: run 'sneak init' first")
 			}
 
@@ -97,7 +97,7 @@ func processCloseCmd(app *App, cacheItems []*config.CacheItem, comment string) e
 	comment = strings.TrimSpace(comment)
 	if comment != "" {
 		_ = app.Client.AddCommentToWorkItems(
-			app.Context, cacheItems, comment,
+			app.Ctx, app.LocalContext, cacheItems, comment,
 		)
 	}
 

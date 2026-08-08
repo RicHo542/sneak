@@ -8,3 +8,4 @@ where you are - the terminal.
 
 - [ ] `ìnit` - Make sure to add .sneak/state.json to .gitignore
 - [ ] `init` - Get the Api Version for the provider
+- [ ] `providers` - Inject context into all REST interface methods

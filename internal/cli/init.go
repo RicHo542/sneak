@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -30,14 +31,14 @@ Creates .sneak/config.yaml which should be committed to git.`,
 			if err != nil {
 				return err
 			}
-			return initialize(dir)
+			return initialize(cmd.Context(), dir)
 		},
 	}
 
 	return cmd
 }
 
-func initialize(dir string) error {
+func initialize(ctx context.Context, dir string) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	if err := checkAlreadyInitialized(reader, dir); err != nil {
@@ -49,7 +50,7 @@ func initialize(dir string) error {
 		return err
 	}
 
-	cfg := &config.Context{
+	cfg := &config.LocalContext{
 		Remote: config.RemoteContext{
 			Host: provider.Host,
 			Type: provider.Type,
@@ -82,7 +83,7 @@ func initialize(dir string) error {
 	}
 
 	fmt.Println()
-	if err := discoverWorkflowTransitions(provider, cfg); err != nil {
+	if err := discoverWorkflowTransitions(ctx, provider, cfg); err != nil {
 		fmt.Printf("Warning: %v\n", err)
 	}
 
@@ -95,13 +96,15 @@ func initialize(dir string) error {
 	return nil
 }
 
-func discoverWorkflowTransitions(provider *config.Provider, cfg *config.Context) error {
+func discoverWorkflowTransitions(
+	ctx context.Context, provider *config.Provider, cfg *config.LocalContext,
+) error {
 	c, err := client.NewProviderClient(provider)
 	if err != nil {
 		return fmt.Errorf("could not discover workflow transitions: %w", err)
 	}
 
-	workflow, err := c.DiscoverWorkflow(cfg)
+	workflow, err := c.DiscoverWorkflow(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("could not discover workflow transitions: %w", err)
 	}
@@ -199,7 +202,7 @@ func chooseProvider(reader *bufio.Reader) (*config.Provider, error) {
 	return &selected, nil
 }
 
-func initJiraConfig(reader *bufio.Reader, cfg *config.Context) error {
+func initJiraConfig(reader *bufio.Reader, cfg *config.LocalContext) error {
 	project, err := ui.PromptLine(reader, "Project Name (e.g. PROJ)")
 	if err != nil {
 		return err
@@ -220,7 +223,7 @@ func initJiraConfig(reader *bufio.Reader, cfg *config.Context) error {
 	return nil
 }
 
-func initAzureConfig(reader *bufio.Reader, cfg *config.Context) error {
+func initAzureConfig(reader *bufio.Reader, cfg *config.LocalContext) error {
 	project, err := ui.PromptLine(reader, "Project name")
 	if err != nil {
 		return err

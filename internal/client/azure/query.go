@@ -2,6 +2,7 @@ package azure
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,15 +52,15 @@ type azureAssignee struct {
 }
 
 func (c *AzureProviderClient) ListWorkItems(
-	ctx *config.Context, opts objects.ListOptions,
+	ctx context.Context, lctx *config.LocalContext, opts objects.ListOptions,
 ) ([]objects.WorkItem, error) {
-	project := ctx.Remote.Project
+	project := lctx.Remote.Project
 	if project == "" {
 		return nil, fmt.Errorf("azure project is required in context")
 	}
 
-	wiqlQuery := c.buildWIQL(ctx, opts)
-	ids, err := c.queryWIQL(project, wiqlQuery)
+	wiqlQuery := c.buildWIQL(lctx, opts)
+	ids, err := c.queryWIQL(ctx, project, wiqlQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -68,11 +69,11 @@ func (c *AzureProviderClient) ListWorkItems(
 		return []objects.WorkItem{}, nil
 	}
 
-	return c.fetchBatch(project, ids)
+	return c.fetchBatch(ctx, project, ids)
 }
 
 func (c *AzureProviderClient) queryWIQL(
-	project, query string,
+	ctx context.Context, project string, query string,
 ) ([]int, error) {
 	apiURL := c.Endpoints.wiqlEndpoint(project)
 
@@ -81,7 +82,7 @@ func (c *AzureProviderClient) queryWIQL(
 		return nil, fmt.Errorf("failed to marshal WIQL: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", apiURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
@@ -125,7 +126,7 @@ func (c *AzureProviderClient) queryWIQL(
 }
 
 func (c *AzureProviderClient) fetchBatch(
-	project string, ids []int,
+	ctx context.Context, project string, ids []int,
 ) ([]objects.WorkItem, error) {
 	var all []objects.WorkItem
 	for i := 0; i < len(ids); i += 200 {
@@ -135,7 +136,7 @@ func (c *AzureProviderClient) fetchBatch(
 		}
 		chunk := ids[i:end]
 
-		items, err := c.fetchChunk(project, chunk)
+		items, err := c.fetchChunk(ctx, project, chunk)
 		if err != nil {
 			return nil, err
 		}
@@ -145,7 +146,7 @@ func (c *AzureProviderClient) fetchBatch(
 }
 
 func (c *AzureProviderClient) fetchChunk(
-	project string, ids []int,
+	ctx context.Context, project string, ids []int,
 ) ([]objects.WorkItem, error) {
 	idStrs := make([]string, len(ids))
 	for i, id := range ids {
@@ -153,7 +154,7 @@ func (c *AzureProviderClient) fetchChunk(
 	}
 	apiURL := c.Endpoints.workItemsEndpoint(project, idStrs)
 
-	req, err := http.NewRequest("GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
@@ -188,7 +189,7 @@ func (c *AzureProviderClient) fetchChunk(
 }
 
 func (c *AzureProviderClient) buildWIQL(
-	ctx *config.Context, opts objects.ListOptions,
+	ctx *config.LocalContext, opts objects.ListOptions,
 ) string {
 	if len(opts.Bindings) > 0 {
 		return c.buildRecursiveWIQL(ctx, opts)
@@ -214,7 +215,7 @@ func (c *AzureProviderClient) buildWIQL(
 }
 
 func (c *AzureProviderClient) buildRecursiveWIQL(
-	ctx *config.Context, opts objects.ListOptions,
+	ctx *config.LocalContext, opts objects.ListOptions,
 ) string {
 	project := ctx.Remote.Project
 

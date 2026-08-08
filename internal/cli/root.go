@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"os"
 
 	"github.com/richo542/sneak/internal/client"
@@ -15,11 +16,12 @@ type BuildInfo struct {
 }
 
 type App struct {
-	Provider *config.Provider
-	Client   client.ProviderClient
-	Context  *config.Context
-	State    *config.State
-	Dir      string
+	Provider     *config.Provider
+	Client       client.ProviderClient
+	Ctx          context.Context
+	LocalContext *config.LocalContext
+	State        *config.State
+	Dir          string
 }
 
 func NewRootCmd(info BuildInfo) *cobra.Command {
@@ -31,7 +33,7 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		Version: info.Version,
 		// Runs before any subcommand
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return initApp(app)
+			return initApp(cmd, app)
 		},
 		SilenceUsage: true,
 	}
@@ -50,7 +52,7 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 	return root
 }
 
-func initApp(app *App) error {
+func initApp(cmd *cobra.Command, app *App) error {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return err
@@ -61,13 +63,13 @@ func initApp(app *App) error {
 	}
 	app.Dir = dir
 
-	ctx, err := config.LoadContext(dir)
+	localCtx, err := config.LoadContext(dir)
 	if err != nil {
 		return nil
 	}
-	app.Context = ctx
+	app.LocalContext = localCtx
 
-	provider, err := config.GetProviderByHost(ctx.Remote.Host)
+	provider, err := config.GetProviderByHost(localCtx.Remote.Host)
 	if err != nil {
 		return nil
 	}
@@ -85,5 +87,6 @@ func initApp(app *App) error {
 	}
 	app.State = state
 
+	app.Ctx = cmd.Root().Context()
 	return nil
 }

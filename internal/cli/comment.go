@@ -19,7 +19,7 @@ func newCommentCmd(app *App) *cobra.Command {
 		Long:  `Allows you to leave a comment on a work item.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			if app.Context == nil {
+			if app.LocalContext == nil {
 				return fmt.Errorf("not initialized: run 'sneak init' first")
 			}
 
@@ -59,7 +59,7 @@ func runComment(app *App, tasks []string, comment string) error {
 	}
 
 	if err := app.Client.AddCommentToWorkItems(
-		app.Context, cachedTasks, comment,
+		app.Ctx, app.LocalContext, cachedTasks, comment,
 	); err != nil {
 		ui.Printfln("Error: %w", err)
 		return err

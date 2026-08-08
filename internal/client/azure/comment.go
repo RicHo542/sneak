@@ -2,6 +2,7 @@ package azure
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,12 +19,12 @@ type azureCommentRequest struct {
 // AddCommentToWorkItems posts the given comment to each of the passed work
 // items.
 func (c *AzureProviderClient) AddCommentToWorkItems(
-	ctx *config.Context, items []*config.CacheItem,
-	comment string,
+	ctx context.Context, lctx *config.LocalContext,
+	items []*config.CacheItem, comment string,
 ) error {
 	comment = strings.TrimSpace(comment)
 
-	project := ctx.Remote.Project
+	project := lctx.Remote.Project
 	if project == "" {
 		return fmt.Errorf("azure project is required in context")
 	}
@@ -43,7 +44,7 @@ func (c *AzureProviderClient) AddCommentToWorkItems(
 
 		apiURL := c.Endpoints.workItemCommentsEndpoint(project, id)
 
-		req, err := http.NewRequest("POST", apiURL, bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(payload))
 		if err != nil {
 			failures = append(failures, fmt.Sprintf("%s: %v", item.Key, err))
 			continue

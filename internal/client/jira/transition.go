@@ -2,6 +2,7 @@ package jira
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,11 +33,11 @@ type jiraTransitionID struct {
 }
 
 func (c *JiraProviderClient) getTransitions(
-	issueKey string,
+	ctx context.Context, issueKey string,
 ) ([]jiraTransition, error) {
 	apiURL := c.Endpoints.transitionEndpoint(issueKey)
 
-	req, err := http.NewRequest("GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("bad request: %w", err)
 	}
@@ -74,8 +75,8 @@ func (c *JiraProviderClient) getTransitions(
 // issue type. ctx is only present to satisfy the ProviderClient interface
 // and is not used by Jira, but required by Azure.
 func (c *JiraProviderClient) TransitionWorkItems(
-	_ *config.Context, items []*config.CacheItem,
-	ref config.TransitionRef,
+	ctx context.Context, _ *config.LocalContext,
+	items []*config.CacheItem, ref config.TransitionRef,
 ) error {
 	if ref.TransitionKey == "" {
 		return fmt.Errorf(
@@ -91,7 +92,7 @@ func (c *JiraProviderClient) TransitionWorkItems(
 			continue
 		}
 
-		if err := c.transition(item.Key, ref.TransitionKey); err != nil {
+		if err := c.transition(ctx, item.Key, ref.TransitionKey); err != nil {
 			failures = append(failures, fmt.Sprintf("%s: %v", item.Key, err))
 		}
 	}
@@ -106,7 +107,10 @@ func (c *JiraProviderClient) TransitionWorkItems(
 	return nil
 }
 
-func (c *JiraProviderClient) transition(issueKey, transitionID string) error {
+func (c *JiraProviderClient) transition(
+	ctx context.Context, issueKey string,
+	transitionID string,
+) error {
 	apiURL := c.Cfg.Host +
 		"/rest/api/3/issue/" + url.PathEscape(issueKey) + "/transitions"
 
@@ -117,7 +121,7 @@ func (c *JiraProviderClient) transition(issueKey, transitionID string) error {
 		return fmt.Errorf("bad request body: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", apiURL, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("bad request: %w", err)
 	}
@@ -147,10 +151,10 @@ func (c *JiraProviderClient) transition(issueKey, transitionID string) error {
 // resolves their start/done transitions by matching the status category of
 // each transition's target status.
 func (c *JiraProviderClient) DiscoverWorkflow(
-	ctx *config.Context,
+	ctx context.Context, lctx *config.LocalContext,
 ) (map[string]config.WorkflowMap, error) {
 
-	project := ctx.Remote.Project
+	project := lctx.Remote.Project
 	if project == "" {
 		return nil, fmt.Errorf("jira project is required in context")
 	}
@@ -158,7 +162,7 @@ func (c *JiraProviderClient) DiscoverWorkflow(
 	jql := fmt.Sprintf("project = %s ORDER BY updated DESC", project)
 
 	// We use up to one page of work items to read transitions from.
-	issues, _, err := c.queryApi(jql, "summary,status,issuetype", "")
+	issues, _, err := c.queryApi(ctx, jql, "summary,status,issuetype", "")
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +171,7 @@ func (c *JiraProviderClient) DiscoverWorkflow(
 
 	workflow := make(map[string]config.WorkflowMap)
 	for _, t := range types {
-		wm, err := c.discoverWorkflowForIssues(issuesByType[t])
+		wm, err := c.discoverWorkflowForIssues(ctx, issuesByType[t])
 		if err != nil {
 			return nil, err
 		}
@@ -185,14 +189,14 @@ func (c *JiraProviderClient) DiscoverWorkflow(
 }
 
 func (c *JiraProviderClient) discoverWorkflowForIssues(
-	issues []jiraIssue,
+	ctx context.Context, issues []jiraIssue,
 ) (config.WorkflowMap, error) {
 
 	var wm config.WorkflowMap
 	var transitionErr error
 
 	for _, issue := range issues {
-		transitions, err := c.getTransitions(issue.Key)
+		transitions, err := c.getTransitions(ctx, issue.Key)
 		if err != nil {
 			transitionErr = err
 			continue
@@ -229,11 +233,11 @@ func (c *JiraProviderClient) discoverWorkflowForIssues(
 }
 
 func (c *JiraProviderClient) DiscoverWorkflowForItem(
-	task *config.CacheItem,
+	ctx context.Context, task *config.CacheItem,
 ) (config.WorkflowMap, error) {
 
 	var wm config.WorkflowMap
-	transitions, err := c.getTransitions(task.Key)
+	transitions, err := c.getTransitions(ctx, task.Key)
 	if err != nil {
 		return wm, err
 	}
