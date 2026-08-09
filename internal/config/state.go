@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type State struct {
@@ -13,11 +14,12 @@ type State struct {
 }
 
 type ActiveTask struct {
-	Key     string `json:"key"`
-	Summary string `json:"summary"`
-	Status  string `json:"status"`
-	Managed bool   `json:"managed"`
-	Branch  string `json:"branch,omitempty"`
+	Key         string    `json:"key"`
+	Summary     string    `json:"summary"`
+	Status      string    `json:"status"`
+	Managed     bool      `json:"managed"`
+	Branch      string    `json:"branch,omitempty"`
+	ActivatedAt time.Time `json:"activated_ts"`
 }
 
 func stateFilePath(dir string) string {
@@ -70,13 +72,16 @@ func (s *State) AddActiveTasks(
 		s.ActiveTasks = make([]ActiveTask, 0)
 	}
 
+	now := time.Now()
+
 	for _, item := range items {
 		at := ActiveTask{
-			Key:     item.Key,
-			Summary: item.Summary,
-			Status:  item.Status,
-			Managed: managed,
-			Branch:  branch,
+			Key:         item.Key,
+			Summary:     item.Summary,
+			Status:      item.Status,
+			Managed:     managed,
+			Branch:      branch,
+			ActivatedAt: now,
 		}
 
 		s.ActiveTasks = append(s.ActiveTasks, at)

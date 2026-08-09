@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -64,16 +65,7 @@ func runList(app *App, refresh bool, typeFilter string) error {
 		return nil
 	}
 
-	fmt.Printf("%-12s  %-10s  %-12s  %-16s  %s\n", "KEY", "ASSIGNED", "TYPE", "STATUS", "SUMMARY")
-	fmt.Println(strings.Repeat("-", 80))
-
-	for _, item := range items {
-		assignFlag := ""
-		if item.Assignee != "" {
-			assignFlag = "x"
-		}
-		fmt.Printf("%-12s  %-10s  %-12s  %-16s  %s\n", item.Key, assignFlag, item.Type, item.Status, item.Summary)
-	}
+	ui.PrintTableOfItems(items)
 
 	fmt.Printf("\n%d work items", len(items))
 

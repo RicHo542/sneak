@@ -52,11 +52,27 @@ func RefreshCache(app *App) error {
 		Bindings:  app.LocalContext.Bindings,
 	}
 
+	syncActiveTaskStatuses(state, cacheItems)
+
 	if err := config.SaveState(app.Dir, state); err != nil {
 		return fmt.Errorf("failed to save cache: %w", err)
 	}
 
 	return nil
+}
+
+func syncActiveTaskStatuses(state *config.State, cacheItems []config.CacheItem) {
+	statusByKey := make(map[string]string, len(cacheItems))
+	for _, item := range cacheItems {
+		statusByKey[item.Key] = item.Status
+	}
+
+	for i := range state.ActiveTasks {
+		at := &state.ActiveTasks[i]
+		if status, ok := statusByKey[at.Key]; ok && status != at.Status {
+			at.Status = status
+		}
+	}
 }
 
 func HasInvalidTasks(app *App, tasks []string) ([]string, bool) {
