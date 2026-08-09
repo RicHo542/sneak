@@ -71,6 +71,9 @@ func (c *AzureProviderClient) AssignWorkItems(
 				strings.TrimSpace(string(respBody)),
 			))
 		}
+
+		// Keep cache up to date
+		item.Assignee = c.Cfg.UserDisplayName
 	}
 
 	if len(fails) > 0 {
