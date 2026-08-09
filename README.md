@@ -1,12 +1,55 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="sneak" width="160">
+</p>
+
 # sneak
 
-A CLI tool manager for developers to sneak around the red-tape introduced by SAFe work methods.
-It allows to claim, update and close tasks, User Stories, Bugs etc. belonging to a project right
-where you are - the terminal.
+Sneak lets you claim, update and close tasks - User Stories, Bugs and more -
+right from the terminal. It reduces the red tape of SAFe work methods by
+tracking what you started, syncing statuses with your provider and keeping
+your local state in sync, all without leaving your codebase.
 
-# TODO
+## Commands
 
-- [ ] `ìnit` - Make sure to add .sneak/state.json to .gitignore
-- [x] `init` - Get the Api Version for the provider
-- [x] `providers` - Inject context into all REST interface methods
-- [ ] `apiVersion` support for providers. Requires detection and manipulation of certain endpoints.
+- `sneak config` - Set up your provider connection and user handle.
+- `sneak init` - Initialise the project context in `.sneak/` and discover the workflow.
+- `sneak start KEY...` - Start work on one or more tasks and track them as active.
+- `sneak close KEY...` - Transition tasks to done and stop tracking them.
+
+## Examples
+
+Initially setup a provider (azure/jira), by running the config command and following the setup wizard
+
+```bash
+sneak config
+```
+
+Initialize sneak in your current directory (root of your repository ideally)
+
+```bash
+sneak init
+```
+
+List the work items in your project:
+
+```bash
+$ sneak list
+KEY           ASSIGNED    TYPE         STATUS           SUMMARY
+--------------------------------------------------------------------------------
+STORY-42      x           Story        In Progress      Refactor the login flow
+BUG-7                     Bug          Open             Fix flaky test runner
+```
+
+Start several tasks at once and create a feature branch for them:
+
+```bash
+sneak start STORY-42 BUG-7 -b
+```
+
+Close every task you are currently tracking:
+
+```bash
+sneak close -a
+```
+
+Run `sneak --help` for the full command list.
