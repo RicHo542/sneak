@@ -15,7 +15,7 @@
         "summary": "Some other story 2",
         "status": "Zu erledigen",
         "type": "Task",
-        "assignee": "RicHo542"
+        "assignee": ""
       },
       {
         "id": "10038",
@@ -29,9 +29,9 @@
         "id": "10037",
         "key": "SCRUM-6",
         "summary": "My second Feature",
-        "status": "Zu erledigen",
+        "status": "Fertig",
         "type": "Feature",
-        "assignee": ""
+        "assignee": "RicHo542"
       },
       {
         "id": "10003",
@@ -50,7 +50,7 @@
         "assignee": "RicHo542"
       }
     ],
-    "fetched_at": "2026-08-09T13:23:41.538529+02:00",
+    "fetched_at": "2026-08-09T14:10:45.853001+02:00",
     "bindings": [
       "SCRUM-1"
     ]

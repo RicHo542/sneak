@@ -33,6 +33,10 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		Version: info.Version,
 		// Runs before any subcommand
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			switch cmd.Name() {
+			case "version", "help", "config", "init":
+				return nil
+			}
 			return initApp(cmd, app)
 		},
 		SilenceUsage: true,
