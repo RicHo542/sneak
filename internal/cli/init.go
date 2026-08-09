@@ -88,7 +88,7 @@ func initialize(ctx context.Context, dir string) error {
 	}
 
 	fmt.Println()
-	if err := config.StoreContextConfig(dir, cfg); err != nil {
+	if err := config.StoreLocalContext(dir, cfg); err != nil {
 		return err
 	}
 

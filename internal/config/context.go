@@ -66,7 +66,7 @@ func LoadContext(dir string) (*LocalContext, error) {
 	return &ctx, nil
 }
 
-func StoreContextConfig(dir string, config *LocalContext) error {
+func StoreLocalContext(dir string, config *LocalContext) error {
 	info, err := os.Stat(dir)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func (c *LocalContext) GetDefaultWorkflow() (*WorkflowMap, error) {
 func (c *LocalContext) SetWorkflowForTaskType(dir string, typeName string, workflow WorkflowMap) {
 	c.Transitions[typeName] = workflow
 
-	if err := StoreContextConfig(dir, c); err != nil {
+	if err := StoreLocalContext(dir, c); err != nil {
 		fmt.Printf("Warning: Failed to save local context in '%s'\n", dir)
 	}
 }

@@ -7,5 +7,6 @@ where you are - the terminal.
 # TODO
 
 - [ ] `ìnit` - Make sure to add .sneak/state.json to .gitignore
-- [ ] `init` - Get the Api Version for the provider
-- [ ] `providers` - Inject context into all REST interface methods
+- [x] `init` - Get the Api Version for the provider
+- [x] `providers` - Inject context into all REST interface methods
+- [ ] `apiVersion` support for providers. Requires detection and manipulation of certain endpoints.

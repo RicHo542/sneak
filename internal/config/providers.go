@@ -10,12 +10,13 @@ import (
 )
 
 type Provider struct {
-	Alias      string `toml:"-"`
-	Type       string `toml:"type"`
-	Host       string `toml:"host"`
-	Username   string `toml:"username"`
-	Token      string `toml:"token"`
-	UserHandle string `toml:"user_handle,omitempty"`
+	Alias           string `toml:"-"`
+	Type            string `toml:"type"`
+	Host            string `toml:"host"`
+	Username        string `toml:"username"`
+	Token           string `toml:"token"`
+	UserHandle      string `toml:"user_handle,omitempty"`
+	UserDisplayName string `toml:"user_display_name"`
 }
 
 type ProvidersConfig struct {

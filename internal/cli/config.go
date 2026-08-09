@@ -138,9 +138,11 @@ func runConfigSetup() error {
 		fmt.Println("ok")
 	}
 
-	if userHandle, err := providerClient.GetUserIdent(); err == nil {
-		provider.UserHandle = userHandle
-		fmt.Printf("Authenticated as: %s\n", userHandle)
+	if userInfo, err := providerClient.GetUserIdent(); err == nil {
+		provider.UserHandle = userInfo.UserHandle
+		provider.UserDisplayName = userInfo.DisplayName
+
+		fmt.Printf("Authenticated as: %s (%s)\n", provider.UserDisplayName, provider.UserHandle)
 	} else {
 		fmt.Printf("Warning: could not resolve current user: %v\n", err)
 	}

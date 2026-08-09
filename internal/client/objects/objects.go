@@ -13,3 +13,8 @@ type ListOptions struct {
 	Bindings []string
 	Types    []string
 }
+
+type UserInfo struct {
+	UserHandle  string
+	DisplayName string
+}

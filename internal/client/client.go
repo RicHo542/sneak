@@ -14,7 +14,7 @@ import (
 
 type ProviderClient interface {
 	TestConnection() error
-	GetUserIdent() (string, error)
+	GetUserIdent() (*objects.UserInfo, error)
 	ListWorkItems(context.Context, *config.LocalContext, objects.ListOptions) ([]objects.WorkItem, error)
 	DiscoverWorkflow(context.Context, *config.LocalContext) (map[string]config.WorkflowMap, error)
 	DiscoverWorkflowForItem(context.Context, *config.CacheItem) (config.WorkflowMap, error)

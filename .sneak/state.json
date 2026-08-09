@@ -13,7 +13,7 @@
         "id": "10039",
         "key": "SCRUM-8",
         "summary": "Some other story 2",
-        "status": "In Arbeit",
+        "status": "Zu erledigen",
         "type": "Task",
         "assignee": "RicHo542"
       },
@@ -21,7 +21,7 @@
         "id": "10038",
         "key": "SCRUM-7",
         "summary": "Some other story",
-        "status": "In Arbeit",
+        "status": "Zu erledigen",
         "type": "Task",
         "assignee": ""
       },
@@ -39,70 +39,21 @@
         "summary": "Eval Step 2",
         "status": "In Arbeit",
         "type": "Story",
-        "assignee": ""
+        "assignee": "RicHo542"
       },
       {
         "id": "10002",
         "key": "SCRUM-3",
         "summary": "Eval Step 1",
-        "status": "In Arbeit",
+        "status": "Zu erledigen",
         "type": "Story",
         "assignee": "RicHo542"
       }
     ],
-    "fetched_at": "2026-08-07T20:14:35.452792+02:00",
+    "fetched_at": "2026-08-09T13:23:41.538529+02:00",
     "bindings": [
       "SCRUM-1"
     ]
   },
-  "active_tasks": [
-    {
-      "key": "SCRUM-3",
-      "summary": "Eval Step 1",
-      "status": "In Arbeit",
-      "managed": true
-    },
-    {
-      "key": "SCRUM-4",
-      "summary": "Eval Step 2",
-      "status": "In Arbeit",
-      "managed": true
-    },
-    {
-      "key": "SCRUM-8",
-      "summary": "Some other story 2",
-      "status": "In Arbeit",
-      "managed": true
-    },
-    {
-      "key": "SCRUM-8",
-      "summary": "Some other story 2",
-      "status": "In Arbeit",
-      "managed": true
-    },
-    {
-      "key": "SCRUM-10",
-      "summary": "Fun Fun FUUUUN",
-      "status": "In Arbeit",
-      "managed": true
-    },
-    {
-      "key": "SCRUM-7",
-      "summary": "Some other story",
-      "status": "In Arbeit",
-      "managed": true
-    },
-    {
-      "key": "SCRUM-10",
-      "summary": "Fun Fun FUUUUN",
-      "status": "In Arbeit",
-      "managed": true
-    },
-    {
-      "key": "SCRUM-8",
-      "summary": "Some other story 2",
-      "status": "In Arbeit",
-      "managed": true
-    }
-  ]
+  "active_tasks": []
 }
