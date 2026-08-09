@@ -9,10 +9,10 @@ import (
 	"github.com/richo542/sneak/internal/config"
 )
 
-func CheckAndRefreshCache(app *App, refresh bool) (bool, error) {
+func CheckAndRefreshCache(app *App, forceRefresh bool) (bool, error) {
 	state := app.State
 	bindingsChanged := !state.Cache.MatchesBindings(app.LocalContext.Bindings)
-	needsFetch := refresh || bindingsChanged || !state.Cache.IsFresh()
+	needsFetch := forceRefresh || bindingsChanged || !state.Cache.IsFresh()
 
 	if needsFetch {
 		if err := RefreshCache(app); err != nil {
@@ -99,12 +99,16 @@ func GroupTasksByTransition(
 			return nil, err
 		}
 
-		group := groups[workflow.Start.TransitionKey]
+		ref := workflow.Start
+		if action == "close" {
+			ref = workflow.Done
+		}
+		group := groups[ref.TransitionKey]
 		if group.ref.TransitionKey == "" {
-			group.ref = workflow.Start
+			group.ref = ref
 		}
 		group.items = append(group.items, t)
-		groups[workflow.Start.TransitionKey] = group
+		groups[ref.TransitionKey] = group
 	}
 	return groups, nil
 }
@@ -152,7 +156,7 @@ func ResolveTransitionForTask(
 func TransitionCacheItems(
 	app *App, cacheItems []*config.CacheItem, action string,
 ) error {
-	// Move tasks to in progress
+	// Move tasks to a new transition state (in progress / closed)
 	// Identify the transition target for each task by its type
 	// Build groups with transitionKey -> work items
 	groups, err := GroupTasksByTransition(app, cacheItems, action)
