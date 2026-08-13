@@ -72,6 +72,11 @@ func (s *State) AddActiveTasks(
 		s.ActiveTasks = make([]ActiveTask, 0)
 	}
 
+	itemMap := make(map[string]int, len(s.ActiveTasks)+len(items))
+	for i, at := range s.ActiveTasks {
+		itemMap[at.Key] = i
+	}
+
 	now := time.Now()
 
 	for _, item := range items {
@@ -84,6 +89,14 @@ func (s *State) AddActiveTasks(
 			ActivatedAt: now,
 		}
 
+		if idx, exists := itemMap[item.Key]; exists {
+			s.ActiveTasks[idx] = at
+			continue
+		}
+
+		// Add new active task and update the index map with it in case
+		// there are duplicates in the input slice.
+		itemMap[item.Key] = len(s.ActiveTasks)
 		s.ActiveTasks = append(s.ActiveTasks, at)
 	}
 }

@@ -90,7 +90,7 @@ func resolveTaskFocus(app *App, taskKeys []string, all bool) ([]*config.CacheIte
 
 func processCloseCmd(app *App, cacheItems []*config.CacheItem, comment string) error {
 
-	if err := TransitionCacheItems(app, cacheItems, "close"); err != nil {
+	if err := CloseCacheItems(app, cacheItems, "close"); err != nil {
 		return err
 	}
 

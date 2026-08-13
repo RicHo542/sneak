@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,19 @@ import (
 
 type jiraAssignRequest struct {
 	AccountId string `json:"accountId"`
+}
+
+// StartWorkItems assigns the given work items to the authenticated user and
+// moves them into the target start state described by ref. Jira has no single
+// combined request for both, so the two operations are performed sequentially.
+func (c *JiraProviderClient) StartWorkItems(
+	ctx context.Context, lctx *config.LocalContext,
+	items []*config.CacheItem, ref config.TransitionRef,
+) error {
+	return errors.Join(
+		c.AssignWorkItems(ctx, lctx, items),
+		c.TransitionWorkItems(ctx, lctx, items, ref),
+	)
 }
 
 func (c *JiraProviderClient) AssignWorkItems(ctx context.Context, _ *config.LocalContext, items []*config.CacheItem) error {

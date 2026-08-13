@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -169,8 +170,25 @@ func ResolveTransitionForTask(
 	return workflow, nil
 }
 
-func TransitionCacheItems(
+func CloseCacheItems(
 	app *App, cacheItems []*config.CacheItem, action string,
+) error {
+	return transitionCacheItems(
+		app, cacheItems, action, app.Client.TransitionWorkItems,
+	)
+}
+
+func StartCacheItems(
+	app *App, cacheItems []*config.CacheItem,
+) error {
+	return transitionCacheItems(
+		app, cacheItems, "start", app.Client.StartWorkItems,
+	)
+}
+
+func transitionCacheItems(
+	app *App, cacheItems []*config.CacheItem, action string,
+	exec func(context.Context, *config.LocalContext, []*config.CacheItem, config.TransitionRef) error,
 ) error {
 	// Move tasks to a new transition state (in progress / closed)
 	// Identify the transition target for each task by its type
@@ -181,7 +199,7 @@ func TransitionCacheItems(
 	}
 
 	for _, group := range groups {
-		if err := app.Client.TransitionWorkItems(
+		if err := exec(
 			app.Ctx, app.LocalContext, group.items,
 			group.ref,
 		); err != nil {

@@ -81,19 +81,22 @@ func (c *AzureProviderClient) GetUserIdent() (*objects.UserInfo, error) {
 
 	user := data.AuthenticatedUser
 
-	var userHandle string
-	// Prioritize AccountIds if available. Email second and displayed username last
-	switch {
-	case user.Properties.Account != nil && user.Properties.Account.Value != "":
-		userHandle = user.Properties.Account.Value
-	case user.Properties.Mail != nil && user.Properties.Mail.Value != "":
-		userHandle = user.Properties.Mail.Value
-	case user.DisplayName != "":
-		userHandle = user.DisplayName
-	}
+	// TODO: Check if this can be removed...
+	/*
+		var userHandle string
+		// Prioritize AccountIds if available. Email second and displayed username last
+		switch {
+		case user.Properties.Account != nil && user.Properties.Account.Value != "":
+			userHandle = user.Properties.Account.Value
+		case user.Properties.Mail != nil && user.Properties.Mail.Value != "":
+			userHandle = user.Properties.Mail.Value
+		case user.DisplayName != "":
+			userHandle = user.DisplayName
+		}
+	*/
 
 	return &objects.UserInfo{
-		UserHandle:  userHandle,
+		UserHandle:  user.DisplayName,
 		DisplayName: user.DisplayName,
 	}, nil
 }

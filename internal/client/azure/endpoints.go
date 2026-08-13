@@ -50,7 +50,7 @@ func (o *AzureEndpoints) workItemEndpoint(id int) string {
 
 func (o *AzureEndpoints) workItemCommentsEndpoint(project string, id int) string {
 	return fmt.Sprintf(
-		"%s/%s/%s/_apis/wit/workitems/%d/comments?api-version=%s",
+		"%s/%s/%s/_apis/wit/workitems/%d/comments?api-version=%s-preview",
 		o.host, o.organization, url.PathEscape(project), id, o.apiVersion,
 	)
 }

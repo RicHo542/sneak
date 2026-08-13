@@ -12,3 +12,10 @@ transitions:
         done:
             transition_key: Closed
             display_name: Closed
+    User Story:
+        start:
+            transition_key: Active
+            display_name: Active
+        done:
+            transition_key: Closed
+            display_name: Closed

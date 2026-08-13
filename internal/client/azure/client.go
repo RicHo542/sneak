@@ -44,7 +44,7 @@ func NewAzureProviderClient(
 func azureWorkItemToObject(wi azureBatchWorkItem) objects.WorkItem {
 	item := objects.WorkItem{
 		ID:      strconv.Itoa(wi.ID),
-		Key:     fmt.Sprintf("#%d", wi.ID),
+		Key:     fmt.Sprintf("%d", wi.ID),
 		Summary: wi.Fields.Title,
 		Status:  wi.Fields.State,
 		Type:    wi.Fields.Type,

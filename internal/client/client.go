@@ -19,6 +19,7 @@ type ProviderClient interface {
 	DiscoverWorkflow(context.Context, *config.LocalContext) (map[string]config.WorkflowMap, error)
 	DiscoverWorkflowForItem(context.Context, *config.CacheItem) (config.WorkflowMap, error)
 	TransitionWorkItems(context.Context, *config.LocalContext, []*config.CacheItem, config.TransitionRef) error
+	StartWorkItems(context.Context, *config.LocalContext, []*config.CacheItem, config.TransitionRef) error
 	AddCommentToWorkItems(context.Context, *config.LocalContext, []*config.CacheItem, string) error
 	AssignWorkItems(context.Context, *config.LocalContext, []*config.CacheItem) error
 }

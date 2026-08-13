@@ -1,10 +1,8 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
@@ -91,7 +89,7 @@ func processStartCommand(
 	comment string,
 ) error {
 
-	if err := transitionAndAssignItems(app, cachedTasks); err != nil {
+	if err := StartCacheItems(app, cachedTasks); err != nil {
 		return err
 	}
 
@@ -107,48 +105,17 @@ func processStartCommand(
 
 	comment = strings.TrimSpace(comment)
 	if comment != "" {
-		_ = app.Client.AddCommentToWorkItems(
+		commentErr := app.Client.AddCommentToWorkItems(
 			app.Ctx, app.LocalContext, cachedTasks, comment,
 		)
+		if commentErr != nil {
+			ui.Printfln("failed to add comment: %v", commentErr)
+		}
 	}
 
 	app.State.AddActiveTasks(cachedTasks, true, branchName)
 	if err := config.SaveState(app.Dir, app.State); err != nil {
 		fmt.Println("Failed to save tasks to local state")
-	}
-
-	return nil
-}
-
-func transitionAndAssignItems(app *App, items []*config.CacheItem) error {
-
-	var wg sync.WaitGroup
-	errorChannel := make(chan error, 2)
-
-	wg.Go(func() {
-		err := TransitionCacheItems(app, items, "start")
-		if err != nil {
-			errorChannel <- err
-		}
-	})
-
-	wg.Go(func() {
-		err := app.Client.AssignWorkItems(app.Ctx, app.LocalContext, items)
-		if err != nil {
-			errorChannel <- err
-		}
-	})
-
-	wg.Wait()
-	close(errorChannel)
-
-	var processErrors []error
-	for e := range errorChannel {
-		processErrors = append(processErrors, e)
-	}
-
-	if len(processErrors) > 0 {
-		return errors.Join(processErrors...)
 	}
 
 	return nil

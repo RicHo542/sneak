@@ -83,7 +83,7 @@ func (c *AzureProviderClient) TransitionWorkItems(
 // azureWorkItemID converts a work item key (e.g. "#123" or "123") to its
 // numeric ID.
 func azureWorkItemID(key string) (int, error) {
-	idStr := strings.TrimPrefix(strings.TrimSpace(key), "#")
+	idStr := strings.TrimSpace(key)
 	if idStr == "" {
 		return 0, fmt.Errorf("invalid work item key %q", key)
 	}
