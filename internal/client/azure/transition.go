@@ -28,8 +28,8 @@ type azureStatesResponse struct {
 // azureWorkItemState.StateCategory is language-independent
 // ("Proposed", "InProgress", "Resolved", "Completed").
 type azureWorkItemState struct {
-	Name          string `json:"name"`
-	StateCategory string `json:"stateCategory"`
+	Name     string `json:"name"`
+	Category string `json:"category"`
 }
 
 type azureWorkItemPatch struct {
@@ -66,7 +66,7 @@ func (c *AzureProviderClient) TransitionWorkItems(
 			failures = append(failures, fmt.Sprintf("%s: %v", item.Key, err))
 			continue
 		}
-		if err := c.transition(ctx, project, id, ref.TransitionKey); err != nil {
+		if err := c.transition(ctx, id, ref.TransitionKey); err != nil {
 			failures = append(failures, fmt.Sprintf("%s: %v", item.Key, err))
 		}
 	}
@@ -95,9 +95,9 @@ func azureWorkItemID(key string) (int, error) {
 }
 
 func (c *AzureProviderClient) transition(
-	ctx context.Context, project string, id int, state string,
+	ctx context.Context, id int, state string,
 ) error {
-	apiURL := c.Endpoints.workItemEndpoint(project, id)
+	apiURL := c.Endpoints.workItemEndpoint(id)
 
 	payload, err := json.Marshal([]azureWorkItemPatch{{
 		Op:    "add",
@@ -152,7 +152,7 @@ func (c *AzureProviderClient) DiscoverWorkflow(
 
 	workflow := make(map[string]config.WorkflowMap)
 	for _, t := range types {
-		wm, err := c.getWorkflowForType(ctx, project, t)
+		wm, err := c.getWorkflowForType(ctx, t)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +169,7 @@ func (c *AzureProviderClient) DiscoverWorkflow(
 func (c *AzureProviderClient) getWorkItemTypes(
 	ctx context.Context, project string,
 ) ([]string, error) {
-	apiURL := c.Endpoints.workItemTypesEndpoint(project)
+	apiURL := c.Endpoints.workItemTypesEndpoint()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
@@ -206,10 +206,10 @@ func (c *AzureProviderClient) getWorkItemTypes(
 }
 
 func (c *AzureProviderClient) getWorkItemTypeStates(
-	ctx context.Context, project string, workItemType string,
+	ctx context.Context, workItemType string,
 ) ([]azureWorkItemState, error) {
 
-	apiURL := c.Endpoints.workItemTypeStatesEndpoint(project, workItemType)
+	apiURL := c.Endpoints.workItemTypeStatesEndpoint(workItemType)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
@@ -242,20 +242,20 @@ func (c *AzureProviderClient) getWorkItemTypeStates(
 }
 
 func (c *AzureProviderClient) getWorkflowForType(
-	ctx context.Context, project, workItemType string,
+	ctx context.Context, workItemType string,
 ) (config.WorkflowMap, error) {
 
-	states, err := c.getWorkItemTypeStates(ctx, project, workItemType)
+	states, err := c.getWorkItemTypeStates(ctx, workItemType)
 	if err != nil {
 		return config.WorkflowMap{}, err
 	}
 
 	var wm config.WorkflowMap
 	for _, s := range states {
-		if s.StateCategory == "InProgress" && wm.Start.TransitionKey == "" {
+		if s.Category == "InProgress" && wm.Start.TransitionKey == "" {
 			wm.Start = config.TransitionRef{TransitionKey: s.Name, DisplayName: s.Name}
 		}
-		if s.StateCategory == "Completed" && wm.Done.TransitionKey == "" {
+		if s.Category == "Completed" && wm.Done.TransitionKey == "" {
 			wm.Done = config.TransitionRef{TransitionKey: s.Name, DisplayName: s.Name}
 		}
 	}
@@ -263,7 +263,7 @@ func (c *AzureProviderClient) getWorkflowForType(
 	// Some types (e.g. Bug) resolve through "Resolved" before "Completed".
 	if wm.Done.TransitionKey == "" {
 		for _, s := range states {
-			if s.StateCategory == "Resolved" {
+			if s.Category == "Resolved" {
 				wm.Done = config.TransitionRef{TransitionKey: s.Name, DisplayName: s.Name}
 				break
 			}
@@ -274,14 +274,19 @@ func (c *AzureProviderClient) getWorkflowForType(
 }
 
 // DiscoverWorkflowForItem resolves start/done states for a single work item.
-// Azure states are static per work item type (no per-item sampling like Jira),
-// so the workflow is resolved from the type's state definitions.
 func (c *AzureProviderClient) DiscoverWorkflowForItem(
 	ctx context.Context, task *config.CacheItem,
 ) (config.WorkflowMap, error) {
-	// TODO: requires a project handle, which is not available on CacheItem.
-	return config.WorkflowMap{}, fmt.Errorf(
-		"azure workflows are resolved statically per work item type, "+
-			"cannot discover for item %q without a project", task.Key,
-	)
+	project := c.Endpoints.project
+	if project == "" {
+		return config.WorkflowMap{}, fmt.Errorf(
+			"azure project is required, cannot discover workflow for item %q", task.Key,
+		)
+	}
+	if task.Type == "" {
+		return config.WorkflowMap{}, fmt.Errorf(
+			"cannot discover workflow for item %q: work item type is unknown", task.Key,
+		)
+	}
+	return c.getWorkflowForType(ctx, task.Type)
 }

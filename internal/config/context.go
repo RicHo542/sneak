@@ -26,7 +26,6 @@ type RemoteContext struct {
 	Board string `yaml:"board,omitempty"`
 
 	// Azure Settings
-	Team     string `yaml:"team,omitempty"`
 	AreaPath string `yaml:"area,omitempty"`
 }
 
@@ -113,6 +112,9 @@ func (c *LocalContext) GetDefaultWorkflow() (*WorkflowMap, error) {
 }
 
 func (c *LocalContext) SetWorkflowForTaskType(dir string, typeName string, workflow WorkflowMap) {
+	if c.Transitions == nil {
+		c.Transitions = make(map[string]WorkflowMap)
+	}
 	c.Transitions[typeName] = workflow
 
 	if err := StoreLocalContext(dir, c); err != nil {

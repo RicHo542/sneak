@@ -52,7 +52,7 @@ func runConfigList() error {
 	for _, p := range cfg.Providers {
 		status := "not tested"
 
-		providerClient, err := client.NewProviderClient(&p)
+		providerClient, err := client.NewProviderClient(nil, &p)
 		if err != nil {
 			status = fmt.Sprintf("failed: %s", err)
 		}
@@ -119,10 +119,16 @@ func runConfigSetup() error {
 		Token:    token,
 	}
 
+	if providerType == "azure" {
+		if err := addAzureSpecificProviderInfo(reader, &provider); err != nil {
+			return err
+		}
+	}
+
 	fmt.Println()
 	fmt.Print("Testing connection... ")
 
-	providerClient, err := client.NewProviderClient(&provider)
+	providerClient, err := client.NewProviderClient(nil, &provider)
 	if err != nil {
 		return err
 	}
@@ -151,6 +157,18 @@ func runConfigSetup() error {
 		return err
 	}
 
+	return nil
+}
+
+func addAzureSpecificProviderInfo(reader *bufio.Reader, prov *config.Provider) error {
+	org, err := ui.PromptLine(reader, "Organization name")
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(org) == "" {
+		return fmt.Errorf("organization name is required")
+	}
+	prov.Organization = strings.TrimSpace(org)
 	return nil
 }
 

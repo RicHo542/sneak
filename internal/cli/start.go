@@ -76,9 +76,14 @@ func runStartCommand(
 		)
 	}
 
-	return processStartCommand(
+	if err := processStartCommand(
 		app, cachedTasks, createBranch, comment,
-	)
+	); err != nil {
+		return err
+	}
+
+	ui.Printfln("Started workitems: %s", strings.Join(tasks, ", "))
+	return nil
 }
 
 func processStartCommand(

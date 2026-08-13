@@ -1,9 +1,9 @@
 package azure
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -18,14 +18,26 @@ type AzureProviderClient struct {
 }
 
 func NewAzureProviderClient(
-	cfg *config.Provider, client *http.Client,
+	cfg *config.Provider, client *http.Client, lctx *config.LocalContext,
 ) *AzureProviderClient {
 	host := strings.TrimRight(cfg.Host, "/")
 
+	// In case nothing was initialized locally in .sneak,
+	// the provider client will not have the Remote.Project information yet.
+	// Endpoints requiring it will not be used for testing the connection though
+	project := ""
+	if lctx != nil && lctx.Remote.Project != "" {
+		project = url.PathEscape(lctx.Remote.Project)
+	}
+
 	return &AzureProviderClient{
-		Cfg:       cfg,
-		Client:    client,
-		Endpoints: &AzureEndpoints{host: host, apiVersion: "7.0"},
+		Cfg:    cfg,
+		Client: client,
+		Endpoints: &AzureEndpoints{
+			host: host, apiVersion: "7.0",
+			organization: url.PathEscape(cfg.Organization),
+			project:      project,
+		},
 	}
 }
 
@@ -44,9 +56,8 @@ func azureWorkItemToObject(wi azureBatchWorkItem) objects.WorkItem {
 }
 
 func (c *AzureProviderClient) SetAuthHeader(req *http.Request) {
-	tokenStr := fmt.Sprintf(":%s", c.Cfg.Token)
 	req.SetBasicAuth(
 		"",
-		base64.StdEncoding.EncodeToString([]byte(tokenStr)),
+		c.Cfg.Token,
 	)
 }

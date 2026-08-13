@@ -15,6 +15,7 @@ type Provider struct {
 	Host            string `toml:"host"`
 	Username        string `toml:"username"`
 	Token           string `toml:"token"`
+	Organization    string `toml:"organization,omitempty"`
 	UserHandle      string `toml:"user_handle,omitempty"`
 	UserDisplayName string `toml:"user_display_name"`
 }

@@ -80,7 +80,7 @@ func initApp(cmd *cobra.Command, app *App) error {
 	}
 	app.Provider = provider
 
-	c, err := client.NewProviderClient(provider)
+	c, err := client.NewProviderClient(localCtx, provider)
 	if err != nil {
 		return nil
 	}

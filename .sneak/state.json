@@ -2,66 +2,242 @@
   "cache": {
     "items": [
       {
-        "id": "10073",
-        "key": "SCRUM-10",
-        "summary": "Fun Fun FUUUUN",
-        "status": "In Arbeit",
-        "type": "Bug",
-        "assignee": "RicHo542"
+        "id": "400189",
+        "key": "#400189",
+        "summary": "AAI ODIN Architectural Runway",
+        "status": "Active",
+        "type": "Increment",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
       },
       {
-        "id": "10039",
-        "key": "SCRUM-8",
-        "summary": "Some other story 2",
-        "status": "Zu erledigen",
-        "type": "Task",
-        "assignee": ""
-      },
-      {
-        "id": "10038",
-        "key": "SCRUM-7",
-        "summary": "Some other story",
-        "status": "Zu erledigen",
-        "type": "Task",
-        "assignee": ""
-      },
-      {
-        "id": "10037",
-        "key": "SCRUM-6",
-        "summary": "My second Feature",
-        "status": "Fertig",
+        "id": "94938",
+        "key": "#94938",
+        "summary": "ODIN - Maintainability - Integration of MLFlow Model States",
+        "status": "New",
         "type": "Feature",
-        "assignee": "RicHo542"
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
       },
       {
-        "id": "10003",
-        "key": "SCRUM-4",
-        "summary": "Eval Step 2",
-        "status": "Zu erledigen",
-        "type": "Story",
-        "assignee": "RicHo542"
+        "id": "94949",
+        "key": "#94949",
+        "summary": "ODIN - Observability - Evaluate Request Tracing Functionalities",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
       },
       {
-        "id": "10002",
-        "key": "SCRUM-3",
-        "summary": "Eval Step 1",
-        "status": "In Arbeit",
-        "type": "Story",
-        "assignee": "RicHo542"
+        "id": "94951",
+        "key": "#94951",
+        "summary": "ODIN - Reporting - Resource Utilization accross cluster and namespace",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "94959",
+        "key": "#94959",
+        "summary": "ODIN - Technology - Evaluate of gRPC in e2e AAI controlled application setups",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "132724",
+        "key": "#132724",
+        "summary": "ODIN - Evaluate gRPC Client \u0026 Server with Ambassador and Seldon Core",
+        "status": "New",
+        "type": "User Story",
+        "assignee": ""
+      },
+      {
+        "id": "132725",
+        "key": "#132725",
+        "summary": "ODIN - Performance testing gRPC vs REST",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "132726",
+        "key": "#132726",
+        "summary": "ODIN - Create documentation for gRPC",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "132727",
+        "key": "#132727",
+        "summary": "ODIN - Evaluate if gRPC is viable for AAI controlled applications based on improvements on speed and complexity",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "94960",
+        "key": "#94960",
+        "summary": "ODIN - Technology - KEDA for horizontal autoscaling",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "94961",
+        "key": "#94961",
+        "summary": "ODIN - Technology - Nvidia Triton Inference Server for CPU models",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "221008",
+        "key": "#221008",
+        "summary": "ODIN - Model Monitoring - Extension by Feedback Data",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "241044",
+        "key": "#241044",
+        "summary": "ODIN - Maintainability - Grouped Automated Test for multi model applications",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "455238",
+        "key": "#455238",
+        "summary": "ODIN - KServe - Definition of testing procedures (how and where to store testing information)",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "455241",
+        "key": "#455241",
+        "summary": "ODIN - KServe - Implementation of ODIN Watchdog Service",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "321678",
+        "key": "#321678",
+        "summary": "ODIN - Cleanup - Webhook Service to react on Prometheus triggers to cleanup on demand.",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "410111",
+        "key": "#410111",
+        "summary": "KServe - Define Rollout Strategies (Helm, CICD, Ingress)",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "455246",
+        "key": "#455246",
+        "summary": "KServe - Evaluate Ingress functionalities (Ambassador, Istio, Nginx Fabric, Courier, K8S Gateways)",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "455247",
+        "key": "#455247",
+        "summary": "KServe - Implementation of new Helm Charts for generic model deployment ",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "455252",
+        "key": "#455252",
+        "summary": "KServe - Implementation of new CI/CD Pipelines for KServe Deployments ",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "410458",
+        "key": "#410458",
+        "summary": "ODIN - Explore Grafana Stack (Mimir vs. Thanos, Tempo, evtl. Loki)",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "422286",
+        "key": "#422286",
+        "summary": "ODIN - CICD - Central DB logging of successful CI/CD Deployment runs for rollout history",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "450404",
+        "key": "#450404",
+        "summary": "ODIN - Central Persistence Design",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "455254",
+        "key": "#455254",
+        "summary": "KServe - Testing and Migration Planning",
+        "status": "New",
+        "type": "Feature",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "455256",
+        "key": "#455256",
+        "summary": "VALI - CI/CD Pipelines, Ingress and Testing",
+        "status": "Active",
+        "type": "Feature",
+        "assignee": ""
+      },
+      {
+        "id": "410104",
+        "key": "#410104",
+        "summary": "Vali - Definition and test of shadow features",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "410106",
+        "key": "#410106",
+        "summary": "Vali - Functionality Testing of SDKs, Services and Helm Charts",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
+      },
+      {
+        "id": "410108",
+        "key": "#410108",
+        "summary": "Vali - Concept and implementation of CI/CD pipelines",
+        "status": "New",
+        "type": "User Story",
+        "assignee": "Horn Richard (GSD DMS MDI PCA AAI)"
       }
     ],
-    "fetched_at": "2026-08-09T15:37:55.672072+02:00",
+    "fetched_at": "2026-08-13T17:41:10.903381066+02:00",
     "bindings": [
-      "SCRUM-1"
+      "400189"
     ]
   },
   "active_tasks": [
     {
-      "key": "SCRUM-3",
-      "summary": "Eval Step 1",
-      "status": "In Arbeit",
+      "key": "#455256",
+      "summary": "VALI - CI/CD Pipelines, Ingress and Testing",
+      "status": "Active",
       "managed": true,
-      "activated_ts": "2026-08-09T15:38:01.932675+02:00"
+      "activated_ts": "2026-08-13T18:01:20.173008079+02:00"
     }
   ]
 }

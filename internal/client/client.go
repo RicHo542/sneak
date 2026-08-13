@@ -23,7 +23,7 @@ type ProviderClient interface {
 	AssignWorkItems(context.Context, *config.LocalContext, []*config.CacheItem) error
 }
 
-func NewProviderClient(p *config.Provider) (ProviderClient, error) {
+func NewProviderClient(lctx *config.LocalContext, p *config.Provider) (ProviderClient, error) {
 	client := http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -35,7 +35,7 @@ func NewProviderClient(p *config.Provider) (ProviderClient, error) {
 		), nil
 	case "azure":
 		return azure.NewAzureProviderClient(
-			p, &client,
+			p, &client, lctx,
 		), nil
 	default:
 		return nil, fmt.Errorf("unsupported provider type: %s", p.Type)

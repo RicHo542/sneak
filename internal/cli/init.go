@@ -99,7 +99,7 @@ func initialize(ctx context.Context, dir string) error {
 func discoverWorkflowTransitions(
 	ctx context.Context, provider *config.Provider, cfg *config.LocalContext,
 ) error {
-	c, err := client.NewProviderClient(provider)
+	c, err := client.NewProviderClient(cfg, provider)
 	if err != nil {
 		return fmt.Errorf("could not discover workflow transitions: %w", err)
 	}
@@ -232,15 +232,6 @@ func initAzureConfig(reader *bufio.Reader, cfg *config.LocalContext) error {
 		return fmt.Errorf("project name is required")
 	}
 	cfg.Remote.Project = strings.TrimSpace(project)
-
-	team, err := ui.PromptLine(reader, "Team name")
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(team) == "" {
-		return fmt.Errorf("team name is required")
-	}
-	cfg.Remote.Team = strings.TrimSpace(team)
 
 	area, err := ui.PromptLine(reader, "Area path (optional, press Enter to skip)")
 	if err != nil {

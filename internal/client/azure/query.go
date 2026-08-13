@@ -33,7 +33,10 @@ type azureWIQLRelation struct {
 	Target azureWIQLWorkItem `json:"target"`
 }
 
-type azureBatchResponse []azureBatchWorkItem
+type azureBatchResponse struct {
+	Count int                  `json:"count"`
+	Items []azureBatchWorkItem `json:"value"`
+}
 
 type azureBatchWorkItem struct {
 	ID     int              `json:"id"`
@@ -75,7 +78,7 @@ func (c *AzureProviderClient) ListWorkItems(
 func (c *AzureProviderClient) queryWIQL(
 	ctx context.Context, project string, query string,
 ) ([]int, error) {
-	apiURL := c.Endpoints.wiqlEndpoint(project)
+	apiURL := c.Endpoints.wiqlEndpoint()
 
 	body, err := json.Marshal(azureWIQLRequest{Query: query})
 	if err != nil {
@@ -152,7 +155,7 @@ func (c *AzureProviderClient) fetchChunk(
 	for i, id := range ids {
 		idStrs[i] = strconv.Itoa(id)
 	}
-	apiURL := c.Endpoints.workItemsEndpoint(project, idStrs)
+	apiURL := c.Endpoints.workItemsEndpoint(idStrs)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
@@ -181,8 +184,8 @@ func (c *AzureProviderClient) fetchChunk(
 		return nil, fmt.Errorf("failed to parse batch response: %w", err)
 	}
 
-	items := make([]objects.WorkItem, 0, len(batch))
-	for _, wi := range batch {
+	items := make([]objects.WorkItem, 0, batch.Count)
+	for _, wi := range batch.Items {
 		items = append(items, azureWorkItemToObject(wi))
 	}
 	return items, nil
@@ -199,7 +202,8 @@ func (c *AzureProviderClient) buildWIQL(
 
 	var conditions []string
 	conditions = append(conditions, fmt.Sprintf("[System.TeamProject] = '%s'", project))
-	conditions = append(conditions, "[System.AssignedTo] = @me")
+	conditions = append(conditions, "([System.AssignedTo] = @me OR [System.AssignedTo] = '')")
+	conditions = append(conditions, "[Target].[System.State] NOT IN ('Closed','Resolved','Removed')")
 
 	if len(opts.Types) != 0 {
 		conditions = append(conditions, fmt.Sprintf("[System.WorkItemType] IN ('%s')", strings.Join(opts.Types, ", ")))
@@ -233,7 +237,8 @@ func (c *AzureProviderClient) buildRecursiveWIQL(
 
 	// Only work items assigned to the current user are returned, mirroring
 	// the Jira provider's "assignee = currentUser() OR assignee IS EMPTY".
-	where = append(where, "[Target].[System.AssignedTo] = @me")
+	where = append(where, "([Target].[System.AssignedTo] = @me OR [Target].[System.AssignedTo] = '')")
+	where = append(where, "[Target].[System.State] NOT IN ('Closed','Resolved','Removed')")
 
 	query := fmt.Sprintf(
 		"SELECT [System.Id] FROM WorkItemLinks WHERE %s MODE (Recursive)",

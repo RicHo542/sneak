@@ -105,16 +105,13 @@ func InteractiveSelectItem(items []config.CacheItem) ([]string, error) {
 
 	var options []huh.Option[string]
 	for _, item := range items {
-		// Only allow selection of unassigned items
-		if item.Assignee == "" {
-			options = append(options, huh.NewOption(
-				fmt.Sprintf("%s: [%s] %s", item.Key, item.Type, item.Summary),
-				item.Key,
-			))
-		}
+		options = append(options, huh.NewOption(
+			fmt.Sprintf("%s: [%s] %s", item.Key, item.Type, item.Summary),
+			item.Key,
+		))
 	}
 	// +1 for header
-	selectionHeight := min(6, len(options)+1)
+	selectionHeight := min(12, len(options)+1)
 
 	selectBox := NewThemedAppForm(
 		huh.NewGroup(
