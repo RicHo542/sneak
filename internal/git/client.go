@@ -50,3 +50,14 @@ func (c *GitClient) BranchExists(branchName string) bool {
 	err := exec.Command("git", "rev-parse", "--verify", branchName).Run()
 	return err == nil
 }
+
+// IsWorkingTreeClean checks if the current git working tree is clean from changes
+// by using 'git status --porcelain'
+func (c *GitClient) IsWorkingTreeClean() (bool, error) {
+	output, err := exec.Command("git", "status", "--porcelain").Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to get git status: %v", err)
+	}
+
+	return len(output) == 0, nil
+}
