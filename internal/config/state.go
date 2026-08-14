@@ -138,3 +138,26 @@ func (s *State) GetActiveCacheItems() ([]*CacheItem, error) {
 	}
 	return items, nil
 }
+
+func (s *State) GetActiveTaskByKey(key string) (*ActiveTask, error) {
+	for i := range s.ActiveTasks {
+		if s.ActiveTasks[i].Key == key {
+			return &s.ActiveTasks[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("item not found in active tasks.")
+}
+
+func (s *State) GetActiveTasksByKeyBatch(keys []string) ([]*ActiveTask, error) {
+	var activeTasks []*ActiveTask
+	for _, t := range keys {
+		cacheItem, err := s.GetActiveTaskByKey(t)
+		if err != nil {
+			return nil, err
+		}
+		activeTasks = append(activeTasks, cacheItem)
+	}
+
+	return activeTasks, nil
+}
