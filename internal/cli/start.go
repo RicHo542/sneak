@@ -57,21 +57,9 @@ func runStartCommand(
 		return err
 	}
 
-	// Prompt user with interactive selection if no key was provided.
-	if len(tasks) < 1 {
-		tasks, err = ui.InteractiveSelectItem(app.State.Cache.Items)
-		if err != nil {
-			return err
-		}
-	}
-
-	cachedTasks, err := app.State.Cache.GetByKeyBatch(tasks)
+	cachedTasks, err := ResolveTaskFocus(app, tasks, false)
 	if err != nil {
-		return fmt.Errorf(
-			"unable to find tasks in cache. "+
-				"Consider to run 'sneak list --refresh' to force a refresh.: %w",
-			err,
-		)
+		return err
 	}
 
 	if err := processStartCommand(
@@ -103,15 +91,9 @@ func processStartCommand(
 		branchName = createdBranchName
 	}
 
-	comment = strings.TrimSpace(comment)
-	if comment != "" {
-		commentErr := app.Client.AddCommentToWorkItems(
-			app.Ctx, app.LocalContext, cachedTasks, comment,
-		)
-		if commentErr != nil {
-			ui.Printfln("failed to add comment: %v", commentErr)
-		}
-	}
+	// Do not fail if comments have not been added.
+	// User is informed, but important transactions succeeded.
+	CommentCacheItems(app, cachedTasks, comment)
 
 	app.State.AddActiveTasks(cachedTasks, true, branchName)
 	if err := config.SaveState(app.Dir, app.State); err != nil {
