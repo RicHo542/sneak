@@ -51,7 +51,7 @@ func RefreshCache(app *App) error {
 		Bindings:  app.LocalContext.Bindings,
 	}
 
-	syncActiveTaskStatuses(state, cacheItems)
+	reconcileActiveTasks(state, cacheItems)
 
 	if err := config.SaveState(app.Dir, state); err != nil {
 		return fmt.Errorf("failed to save cache: %w", err)
@@ -60,16 +60,26 @@ func RefreshCache(app *App) error {
 	return nil
 }
 
-func syncActiveTaskStatuses(state *config.State, cacheItems []config.CacheItem) {
+func reconcileActiveTasks(state *config.State, cacheItems []config.CacheItem) {
 	statusByKey := make(map[string]string, len(cacheItems))
 	for _, item := range cacheItems {
 		statusByKey[item.Key] = item.Status
 	}
 
+	// Sync statuses for items still in the cache.
 	for i := range state.ActiveTasks {
 		at := &state.ActiveTasks[i]
 		if status, ok := statusByKey[at.Key]; ok && status != at.Status {
 			at.Status = status
 		}
 	}
+
+	// Remove active tasks no longer present in the cache.
+	kept := state.ActiveTasks[:0]
+	for _, at := range state.ActiveTasks {
+		if _, ok := statusByKey[at.Key]; ok {
+			kept = append(kept, at)
+		}
+	}
+	state.ActiveTasks = kept
 }

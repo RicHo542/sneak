@@ -1,21 +1,21 @@
 remote:
-    host: https://tfs.intra.infineon.com/tfs
-    type: azure
-    project: MDI PCA AAI
+    host: https://richo542.atlassian.net
+    type: jira
+    project: SCRUM
 bindings:
-    - "400189"
+    - SCRUM-1
 transitions:
-    Feature:
+    Story:
         start:
-            transition_key: Active
-            display_name: Active
+            transition_key: "21"
+            display_name: In Arbeit
         done:
-            transition_key: Closed
-            display_name: Closed
-    User Story:
+            transition_key: "41"
+            display_name: Fertig
+    Task:
         start:
-            transition_key: Active
-            display_name: Active
+            transition_key: "21"
+            display_name: In Arbeit
         done:
-            transition_key: Closed
-            display_name: Closed
+            transition_key: "41"
+            display_name: Fertig
