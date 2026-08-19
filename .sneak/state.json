@@ -45,9 +45,9 @@
         "id": "10002",
         "key": "SCRUM-3",
         "summary": "Eval Step 1",
-        "status": "Zu erledigen",
+        "status": "In Arbeit",
         "type": "Story",
-        "assignee": ""
+        "assignee": "RicHo542"
       }
     ],
     "fetched_at": "2026-08-19T18:55:41.121808+02:00",
@@ -62,6 +62,14 @@
       "status": "Zu erledigen",
       "managed": true,
       "activated_ts": "2026-08-14T11:56:54.563986+02:00"
+    },
+    {
+      "key": "SCRUM-3",
+      "summary": "Eval Step 1",
+      "status": "In Arbeit",
+      "managed": true,
+      "branch": "scrum-3",
+      "activated_ts": "2026-08-19T18:56:51.144631+02:00"
     }
   ]
 }
