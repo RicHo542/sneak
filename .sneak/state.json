@@ -13,17 +13,17 @@
         "id": "10039",
         "key": "SCRUM-8",
         "summary": "Some other story 2",
-        "status": "Zu erledigen",
+        "status": "In Arbeit",
         "type": "Task",
-        "assignee": ""
+        "assignee": "RicHo542"
       },
       {
         "id": "10038",
         "key": "SCRUM-7",
         "summary": "Some other story",
-        "status": "Zu erledigen",
+        "status": "In Arbeit",
         "type": "Task",
-        "assignee": ""
+        "assignee": "RicHo542"
       },
       {
         "id": "10037",
@@ -50,7 +50,7 @@
         "assignee": "RicHo542"
       }
     ],
-    "fetched_at": "2026-08-19T18:55:41.121808+02:00",
+    "fetched_at": "2026-08-19T19:05:08.865868+02:00",
     "bindings": [
       "SCRUM-1"
     ]
@@ -59,9 +59,10 @@
     {
       "key": "SCRUM-7",
       "summary": "Some other story",
-      "status": "Zu erledigen",
+      "status": "In Arbeit",
       "managed": true,
-      "activated_ts": "2026-08-14T11:56:54.563986+02:00"
+      "branch": "feat/scrum-8-scrum-7",
+      "activated_ts": "2026-08-19T19:05:21.054594+02:00"
     },
     {
       "key": "SCRUM-3",
@@ -70,6 +71,14 @@
       "managed": true,
       "branch": "scrum-3",
       "activated_ts": "2026-08-19T18:56:51.144631+02:00"
+    },
+    {
+      "key": "SCRUM-8",
+      "summary": "Some other story 2",
+      "status": "In Arbeit",
+      "managed": true,
+      "branch": "feat/scrum-8-scrum-7",
+      "activated_ts": "2026-08-19T19:05:21.054594+02:00"
     }
   ]
 }
