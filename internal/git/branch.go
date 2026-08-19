@@ -13,5 +13,5 @@ func BuildBranchName(tasks []*config.CacheItem) string {
 		normalizedNames = append(normalizedNames, strings.ToLower(t.Key))
 	}
 
-	return strings.Join(normalizedNames, "-")
+	return "feat/" + strings.Join(normalizedNames, "-")
 }
