@@ -41,10 +41,11 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		},
 		SilenceUsage: true,
 	}
+	root.CompletionOptions.DisableDefaultCmd = true
 
+	root.SetHelpCommand(newHelpCmd())
 	root.AddCommand(
 		newVersionCmd(info),
-		newHelpCmd(),
 		newConfigCmd(),
 		newInitCmd(),
 		newListCmd(app),
