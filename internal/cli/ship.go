@@ -61,6 +61,11 @@ func runShipCommand(
 		return err
 	}
 
+	fmt.Println(
+		"'sneak ship' is not yet implemented and will come in future releases.\n" +
+			"For now, please use 'sneak close' to close the work item(s) and create a PR manually, if required.",
+	)
+
 	return nil
 }
 

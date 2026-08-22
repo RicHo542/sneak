@@ -48,14 +48,24 @@ func (c *Cache) GetByKey(key string) (*CacheItem, error) {
 	return nil, fmt.Errorf("item not found in cache.")
 }
 
-func (c *Cache) GetByKeyBatch(tasks []string) ([]*CacheItem, error) {
+func (c *Cache) indexByKey() map[string]int {
+	idx := make(map[string]int, len(c.Items))
+	for i, item := range c.Items {
+		idx[item.Key] = i
+	}
+	return idx
+}
+
+func (c *Cache) GetByKeyBatch(keys []string) ([]*CacheItem, error) {
+	idx := c.indexByKey()
+
 	var cachedTasks []*CacheItem
-	for _, t := range tasks {
-		cacheItem, err := c.GetByKey(t)
-		if err != nil {
-			return nil, err
+	for _, t := range keys {
+		i, ok := idx[t]
+		if !ok {
+			return nil, fmt.Errorf("item not found in cache.")
 		}
-		cachedTasks = append(cachedTasks, cacheItem)
+		cachedTasks = append(cachedTasks, &c.Items[i])
 	}
 
 	return cachedTasks, nil

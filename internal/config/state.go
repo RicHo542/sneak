@@ -64,6 +64,14 @@ func SaveState(dir string, state *State) error {
 	return nil
 }
 
+func (s *State) activeTaskIndex() map[string]int {
+	idx := make(map[string]int, len(s.ActiveTasks))
+	for i, at := range s.ActiveTasks {
+		idx[at.Key] = i
+	}
+	return idx
+}
+
 func (s *State) AddActiveTasks(
 	items []*CacheItem, managed bool, branch string,
 ) {
@@ -101,9 +109,6 @@ func (s *State) AddActiveTasks(
 	}
 }
 
-// RemoveActiveTasks removed the supplied slice of cache items from
-// the active tracking in the state. This is done based on issue key
-// of the cache item.
 func (s *State) RemoveActiveTasks(items []*CacheItem) {
 	if s.ActiveTasks == nil {
 		return
@@ -124,17 +129,16 @@ func (s *State) RemoveActiveTasks(items []*CacheItem) {
 	s.ActiveTasks = kept
 }
 
-// GetActiveCacheItems resolves the active tasks back to their cached work
-// items. The returned pointers reference the cache entries directly, so
-// mutating them also keeps the cache in sync.
 func (s *State) GetActiveCacheItems() ([]*CacheItem, error) {
+	cacheIdx := s.Cache.indexByKey()
+
 	var items []*CacheItem
 	for _, at := range s.ActiveTasks {
-		item, err := s.Cache.GetByKey(at.Key)
-		if err != nil {
-			return nil, fmt.Errorf("active task '%s' not found in cache: %w", at.Key, err)
+		i, ok := cacheIdx[at.Key]
+		if !ok {
+			return nil, fmt.Errorf("active task '%s' not found in cache", at.Key)
 		}
-		items = append(items, item)
+		items = append(items, &s.Cache.Items[i])
 	}
 	return items, nil
 }
@@ -150,22 +154,26 @@ func (s *State) GetActiveTaskByKey(key string) (*ActiveTask, error) {
 }
 
 func (s *State) GetActiveTasksByKeyBatch(keys []string) ([]*ActiveTask, error) {
+	idx := s.activeTaskIndex()
+
 	var activeTasks []*ActiveTask
-	for _, t := range keys {
-		cacheItem, err := s.GetActiveTaskByKey(t)
-		if err != nil {
-			return nil, err
+	for _, key := range keys {
+		i, ok := idx[key]
+		if !ok {
+			return nil, fmt.Errorf("item not found in active tasks.")
 		}
-		activeTasks = append(activeTasks, cacheItem)
+		activeTasks = append(activeTasks, &s.ActiveTasks[i])
 	}
 
 	return activeTasks, nil
 }
 
 func (s *State) GetNonActiveCacheItems() ([]*CacheItem, error) {
+	active := s.activeTaskIndex()
+
 	var items []*CacheItem
 	for i, item := range s.Cache.Items {
-		if _, err := s.GetActiveTaskByKey(item.Key); err != nil {
+		if _, isActive := active[item.Key]; !isActive {
 			items = append(items, &s.Cache.Items[i])
 		}
 	}
@@ -174,12 +182,9 @@ func (s *State) GetNonActiveCacheItems() ([]*CacheItem, error) {
 }
 
 func (s *State) GetActiveTasksByCacheItems(items []*CacheItem) []*ActiveTask {
-	var focusedTasks []*ActiveTask
-	itemIndexMap := make(map[string]int, len(s.ActiveTasks))
-	for i, at := range s.ActiveTasks {
-		itemIndexMap[at.Key] = i
-	}
+	itemIndexMap := s.activeTaskIndex()
 
+	var focusedTasks []*ActiveTask
 	for _, item := range items {
 		atIndex, ok := itemIndexMap[item.Key]
 		if !ok {
