@@ -38,7 +38,7 @@ func Printfln(format string, a ...any) {
 
 func PrintTableOfItems(items []config.CacheItem) {
 	fmt.Printf("%-12s  %-10s  %-12s  %-16s  %s\n", "KEY", "ASSIGNED", "TYPE", "STATUS", "SUMMARY")
-	fmt.Println(strings.Repeat("-", 80))
+	fmt.Println(strings.Repeat("-", 100))
 
 	for _, item := range items {
 		assignFlag := ""
@@ -54,7 +54,7 @@ func PrintTableOfItems(items []config.CacheItem) {
 }
 
 func PrintActiveTaskTable(items []config.ActiveTask) {
-	fmt.Printf("%-12s  %-16s  %-16s  %-10s  %s\n", "KEY", "STATUS", "ACTIVATED", "BRANCH", "SUMMARY")
+	fmt.Printf("%-12s  %-16s  %-16s  %-16s  %s\n", "KEY", "STATUS", "ACTIVATED", "BRANCH", "SUMMARY")
 	fmt.Println(strings.Repeat("-", 100))
 
 	for _, item := range items {
@@ -63,7 +63,7 @@ func PrintActiveTaskTable(items []config.ActiveTask) {
 			summary = item.Summary[:40]
 		}
 
-		fmt.Printf("%-12s  %-16s  %-10s  %-16s  %s\n", item.Key, item.Status, timeAgo(item.ActivatedAt), item.Branch, summary)
+		fmt.Printf("%-12s  %-16s  %-16s  %-16s  %s\n", item.Key, item.Status, timeAgo(item.ActivatedAt), item.Branch, summary)
 	}
 }
 

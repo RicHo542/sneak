@@ -47,7 +47,7 @@ func runShipCommand(
 		return err
 	}
 
-	cacheItems, err := ResolveTaskFocus(app, tasks, all)
+	cacheItems, err := ResolveShipTaskFocus(app, tasks, all)
 	if err != nil {
 		return err
 	}

@@ -57,7 +57,7 @@ func runStartCommand(
 		return err
 	}
 
-	cachedTasks, err := ResolveTaskFocus(app, tasks, false)
+	cachedTasks, err := ResolveStartTaskFocus(app, tasks, false)
 	if err != nil {
 		return err
 	}

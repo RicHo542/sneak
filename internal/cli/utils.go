@@ -27,33 +27,48 @@ func HasInvalidTasks(app *App, tasks []string) ([]string, bool) {
 	return invalidTasks, len(invalidTasks) > 0
 }
 
-func ResolveTaskFocus(app *App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
-	if all {
-		cacheItems, err := app.State.GetActiveCacheItems()
+func ResolveCloseTaskFocus(app *App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
+	return resolveTaskFocus(app, taskKeys, all, app.State.GetActiveCacheItems)
+}
+
+func ResolveShipTaskFocus(app *App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
+	return resolveTaskFocus(app, taskKeys, all, app.State.GetActiveCacheItems)
+}
+
+func ResolveStartTaskFocus(app *App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
+	return resolveTaskFocus(app, taskKeys, all, app.State.GetNonActiveCacheItems)
+}
+
+func resolveTaskFocus(
+	app *App, taskKeys []string, all bool,
+	candidateFunc func() ([]*config.CacheItem, error),
+) ([]*config.CacheItem, error) {
+
+	if len(taskKeys) > 0 {
+		cacheItems, err := app.State.Cache.GetByKeyBatch(taskKeys)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf(
+				"unable to find tasks in cache. "+
+					"Consider to run 'sneak list --refresh' to force a refresh.: %w",
+				err,
+			)
 		}
 		return cacheItems, nil
 	}
 
-	selectedKeys := taskKeys
-	tuiSelectErr := fmt.Errorf("failed task selection.")
-	// Prompt user with interactive selection if no key was provided.
-	if len(taskKeys) < 1 {
-		selectedKeys, tuiSelectErr = ui.InteractiveSelectItem(app.State.Cache.Items)
-		if tuiSelectErr != nil {
-			return nil, tuiSelectErr
-		}
-	}
-
-	cacheItems, err := app.State.Cache.GetByKeyBatch(selectedKeys)
+	cacheItems, err := candidateFunc()
 	if err != nil {
-		return nil, fmt.Errorf(
-			"unable to find tasks in cache. "+
-				"Consider to run 'sneak list --refresh' to force a refresh.: %w",
-			err,
-		)
+		return nil, err
 	}
 
-	return cacheItems, nil
+	if all {
+		return cacheItems, nil
+	}
+
+	// Prompt user with interactive selection if no key was provided.
+	selection, tuiSelectErr := ui.InteractiveSelectItem(cacheItems)
+	if tuiSelectErr != nil {
+		return nil, fmt.Errorf("failed task selection.")
+	}
+	return selection, nil
 }

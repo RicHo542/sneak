@@ -162,6 +162,17 @@ func (s *State) GetActiveTasksByKeyBatch(keys []string) ([]*ActiveTask, error) {
 	return activeTasks, nil
 }
 
+func (s *State) GetNonActiveCacheItems() ([]*CacheItem, error) {
+	var items []*CacheItem
+	for i, item := range s.Cache.Items {
+		if _, err := s.GetActiveTaskByKey(item.Key); err != nil {
+			items = append(items, &s.Cache.Items[i])
+		}
+	}
+
+	return items, nil
+}
+
 func (s *State) GetActiveTasksByCacheItems(items []*CacheItem) []*ActiveTask {
 	var focusedTasks []*ActiveTask
 	itemIndexMap := make(map[string]int, len(s.ActiveTasks))

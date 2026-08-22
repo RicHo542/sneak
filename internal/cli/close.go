@@ -47,7 +47,7 @@ func runCloseCmd(
 	}
 
 	// resolve and forward
-	cacheItems, err := ResolveTaskFocus(app, taskKeys, all)
+	cacheItems, err := ResolveCloseTaskFocus(app, taskKeys, all)
 	if err != nil {
 		return err
 	}
