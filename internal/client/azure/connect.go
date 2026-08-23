@@ -38,12 +38,6 @@ func (c *AzureProviderClient) TestConnection() error {
 	c.SetAuthHeader(req)
 	req.Header.Set("Accept", "application/json")
 
-	for name, values := range req.Header {
-		for _, v := range values {
-			fmt.Printf("%s: %s\n", name, v)
-		}
-	}
-
 	return c.testRequest(req)
 }
 

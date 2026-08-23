@@ -29,7 +29,7 @@ func PromptLine(reader *bufio.Reader, label string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read input: %w", err)
 	}
-	return strings.TrimRight(line, "\r\n"), nil
+	return strings.TrimSpace(strings.TrimRight(line, "\r\n")), nil
 }
 
 func PromptSelect(reader *bufio.Reader, label string, items []SelectItem) (string, error) {
@@ -97,7 +97,7 @@ func ReadSecret() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read password: %w", err)
 	}
-	return strings.TrimRight(line, "\r\n"), nil
+	return strings.TrimSpace(strings.TrimRight(line, "\r\n")), nil
 }
 
 func InteractiveSelectItem(items []*config.CacheItem) ([]*config.CacheItem, error) {

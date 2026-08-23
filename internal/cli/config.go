@@ -47,7 +47,7 @@ func runConfigList() error {
 	}
 
 	fmt.Printf("%-16s  %-8s  %-40s  %-24s  %s\n", "ALIAS", "TYPE", "HOST", "USER", "STATUS")
-	fmt.Println(strings.Repeat("-", 96))
+	fmt.Println(strings.Repeat("-", 110))
 
 	for _, p := range cfg.Providers {
 		status := "not tested"
@@ -62,7 +62,18 @@ func runConfigList() error {
 		} else {
 			status = "ok"
 		}
-		fmt.Printf("%-16s  %-8s  %-40s  %-24s  %s\n", p.Alias, p.Type, p.Host, p.UserHandle, status)
+
+		h := p.Host
+		if len(h) > 40 {
+			h = h[:37] + "..."
+		}
+
+		u := p.UserHandle
+		if len(u) > 24 {
+			u = u[:21] + "..."
+		}
+
+		fmt.Printf("%-16s  %-8s  %-40s  %-24s  %s\n", p.Alias, p.Type, h, u, status)
 	}
 
 	return nil
@@ -73,54 +84,13 @@ func runConfigSetup() error {
 
 	ui.PrintBanner()
 
-	providerType, err := ui.PromptChoice(reader, "Provider type", []string{"jira", "azure"})
+	provider, err := promptProviderInfo(reader)
 	if err != nil {
 		return err
 	}
 
-	alias, err := ui.PromptLine(reader, "Alias (short name, e.g. 'work-jira')")
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(alias) == "" {
-		return fmt.Errorf("alias cannot be empty")
-	}
-
-	host, err := ui.PromptLine(reader, "Host URL (e.g. https://mycompany.atlassian.net)")
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(host) == "" {
-		return fmt.Errorf("host cannot be empty")
-	}
-
-	username, err := ui.PromptLine(reader, "Username / email")
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(username) == "" {
-		return fmt.Errorf("username cannot be empty")
-	}
-
-	fmt.Print("Password / PAT: ")
-	token, err := ui.ReadSecret()
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(token) == "" {
-		return fmt.Errorf("token cannot be empty")
-	}
-
-	provider := config.Provider{
-		Alias:    strings.TrimSpace(alias),
-		Type:     providerType,
-		Host:     strings.TrimSpace(host),
-		Username: strings.TrimSpace(username),
-		Token:    token,
-	}
-
-	if providerType == "azure" {
-		if err := addAzureSpecificProviderInfo(reader, &provider); err != nil {
+	if provider.Type == "azure" {
+		if err := addAzureSpecificProviderInfo(reader, provider); err != nil {
 			return err
 		}
 	}
@@ -128,7 +98,7 @@ func runConfigSetup() error {
 	fmt.Println()
 	fmt.Print("Testing connection... ")
 
-	providerClient, err := client.NewProviderClient(nil, &provider)
+	providerClient, err := client.NewProviderClient(nil, provider)
 	if err != nil {
 		return err
 	}
@@ -160,6 +130,57 @@ func runConfigSetup() error {
 	return nil
 }
 
+func promptProviderInfo(reader *bufio.Reader) (*config.Provider, error) {
+	providerType, err := promptProviderType(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	alias, err := ui.PromptLine(reader, "Alias (short name, e.g. 'work-jira')")
+	if err != nil || alias == "" {
+		return nil, fmt.Errorf("alias invalid or empty: %v", err)
+	}
+
+	host, err := ui.PromptLine(reader, "Host URL (e.g. https://mycompany.atlassian.net)")
+	if err != nil || host == "" {
+		return nil, fmt.Errorf("host invalid or empty: %v", err)
+	}
+
+	username, err := ui.PromptLine(reader, "Username / email")
+	if err != nil || username == "" {
+		return nil, fmt.Errorf("username invalid or empty: %v", err)
+	}
+
+	fmt.Print("Password / PAT: ")
+	token, err := ui.ReadSecret()
+	if err != nil || token == "" {
+		return nil, fmt.Errorf("token invalid or empty: %v", err)
+	}
+
+	provider := config.Provider{
+		Alias:    strings.TrimSpace(alias),
+		Type:     providerType,
+		Host:     strings.TrimSpace(host),
+		Username: strings.TrimSpace(username),
+		Token:    token,
+	}
+
+	return &provider, nil
+}
+
+func promptProviderType(reader *bufio.Reader) (string, error) {
+
+	options := make([]ui.SelectItem, 2)
+	options[0] = ui.SelectItem{Key: "jira", Label: "Jira"}
+	options[1] = ui.SelectItem{Key: "azure", Label: "Azure"}
+
+	selection, err := ui.PromptSelect(reader, "Provider type", options)
+	if err != nil {
+		return "", err
+	}
+	return selection, nil
+}
+
 func addAzureSpecificProviderInfo(reader *bufio.Reader, prov *config.Provider) error {
 	org, err := ui.PromptLine(reader, "Organization name")
 	if err != nil {
@@ -172,13 +193,13 @@ func addAzureSpecificProviderInfo(reader *bufio.Reader, prov *config.Provider) e
 	return nil
 }
 
-func persistProvider(provider config.Provider) error {
+func persistProvider(provider *config.Provider) error {
 	cfg, err := config.LoadProviders()
 	if err != nil {
 		return err
 	}
 
-	cfg.Providers[provider.Alias] = provider
+	cfg.Providers[provider.Alias] = *provider
 
 	if err := config.SaveProviders(cfg); err != nil {
 		return err
