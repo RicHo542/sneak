@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"sort"
 	"strings"
 
@@ -111,8 +110,7 @@ func (c *JiraProviderClient) transition(
 	ctx context.Context, issueKey string,
 	transitionID string,
 ) error {
-	apiURL := c.Cfg.Host +
-		"/rest/api/3/issue/" + url.PathEscape(issueKey) + "/transitions"
+	apiURL := c.Endpoints.transitionEndpoint(issueKey)
 
 	payload, err := json.Marshal(jiraTransitionRequest{
 		Transition: jiraTransitionID{ID: transitionID},

@@ -1,8 +1,8 @@
 package azure
 
 import (
-	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -13,64 +13,100 @@ type AzureEndpoints struct {
 	project      string
 }
 
+func host2url(host string) *url.URL {
+	u, err := url.Parse(host)
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
+
 func (o *AzureEndpoints) testEndpoint() string {
-	return fmt.Sprintf(
-		"%s/%s/_apis/projects?api-version=%s",
-		o.host, o.organization, o.apiVersion,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, "_apis", "projects")
+
+	q := url.Values{}
+	q.Set("api-version", o.apiVersion)
+
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func (o *AzureEndpoints) connectionDataEndpoint() string {
-	return fmt.Sprintf(
-		"%s/%s/_apis/ConnectionData",
-		o.host, o.organization,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, "_apis", "ConnectionData")
+	return u.String()
 }
 
 func (o *AzureEndpoints) wiqlEndpoint() string {
-	return fmt.Sprintf(
-		"%s/%s/%s/_apis/wit/wiql?api-version=%s",
-		o.host, o.organization, o.project, o.apiVersion,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "wiql")
+
+	q := url.Values{}
+	q.Set("api-version", o.apiVersion)
+
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func (o *AzureEndpoints) workItemsEndpoint(ids []string) string {
-	return fmt.Sprintf(
-		"%s/%s/%s/_apis/wit/workitems?ids=%s&api-version=%s",
-		o.host, o.organization, o.project, strings.Join(ids, ","), o.apiVersion,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "workitems")
+
+	q := url.Values{}
+	q.Set("ids", strings.Join(ids, ","))
+	q.Set("api-version", o.apiVersion)
+
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func (o *AzureEndpoints) workItemEndpoint(id int) string {
-	return fmt.Sprintf(
-		"%s/%s/%s/_apis/wit/workitems/%d?api-version=%s",
-		o.host, o.organization, o.project, id, o.apiVersion,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "workitems", strconv.Itoa(id))
+
+	q := url.Values{}
+	q.Set("api-version", o.apiVersion)
+
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
-func (o *AzureEndpoints) workItemCommentsEndpoint(project string, id int) string {
-	return fmt.Sprintf(
-		"%s/%s/%s/_apis/wit/workitems/%d/comments?api-version=%s-preview",
-		o.host, o.organization, url.PathEscape(project), id, o.apiVersion,
-	)
+func (o *AzureEndpoints) workItemCommentsEndpoint(id int) string {
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "workitems", strconv.Itoa(id), "comments")
+
+	q := url.Values{}
+	q.Set("api-version", o.apiVersion+"-preview")
+
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // assignEndpoint reuses workItemEndpoint: Azure has no dedicated assign URL,
 // assignment is a field update (PATCH) on the work item.
-func (o *AzureEndpoints) assignEndpoint(project string, id int) string {
+func (o *AzureEndpoints) assignEndpoint(id int) string {
 	return o.workItemEndpoint(id)
 }
 
 func (o *AzureEndpoints) workItemTypesEndpoint() string {
-	return fmt.Sprintf(
-		"%s/%s/%s/_apis/wit/workitemtypes?api-version=%s",
-		o.host, o.organization, o.project, o.apiVersion,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "workitemtypes")
+
+	q := url.Values{}
+	q.Set("api-version", o.apiVersion)
+
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func (o *AzureEndpoints) workItemTypeStatesEndpoint(workItemType string) string {
-	return fmt.Sprintf(
-		"%s/%s/%s/_apis/wit/workitemtypes/%s/states?api-version=%s",
-		o.host, o.organization, o.project, url.PathEscape(workItemType), o.apiVersion,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "workitemtypes", workItemType, "states")
+
+	q := url.Values{}
+	q.Set("api-version", o.apiVersion)
+
+	u.RawQuery = q.Encode()
+	return u.String()
 }

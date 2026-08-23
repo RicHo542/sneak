@@ -43,7 +43,7 @@ build-linux:
 build-windows:
 	@$(call build_platform,$(PLATFORMS_WINDOWS))
 
-install-wsl:
+install-wsl: build-linux
 	@echo "Installing sneak for WSL..."
 	@sudo mkdir -p /usr/local/bin
 	@tar -xzf bin/$(BINARY)-$(VERSION)-linux-amd64.tar.gz -C /tmp

@@ -57,29 +57,12 @@ func initialize(ctx context.Context, dir string) error {
 		},
 	}
 
-	switch provider.Type {
-	case "jira":
-		if err := initJiraConfig(reader, cfg); err != nil {
-			return err
-		}
-	case "azure":
-		if err := initAzureConfig(reader, cfg); err != nil {
-			return err
-		}
-	}
-
-	fmt.Println()
-	itemsStr, err := ui.PromptLine(reader, "Parent item IDs (comma-separated, or leave empty)")
-	if err != nil {
+	if err := promptForProject(reader, cfg); err != nil {
 		return err
 	}
-	if itemsStr != "" {
-		for id := range strings.SplitSeq(itemsStr, ",") {
-			id = strings.TrimSpace(id)
-			if id != "" {
-				cfg.Bindings = append(cfg.Bindings, id)
-			}
-		}
+
+	if err := promptForBindings(reader, cfg); err != nil {
+		return err
 	}
 
 	fmt.Println()
@@ -125,7 +108,7 @@ func discoverWorkflowTransitions(
 	fmt.Println("Discovered workflow transitions:")
 	for _, t := range types {
 		wm := workflow[t]
-		fmt.Printf("  %-10s start=%-30s done=%s\n", t,
+		fmt.Printf("  %-30s start=%-20s done=%s\n", t,
 			transitionRefLabel(wm.Start), transitionRefLabel(wm.Done))
 	}
 	return nil
@@ -196,34 +179,12 @@ func chooseProvider(reader *bufio.Reader) (*config.Provider, error) {
 			return nil, err
 		}
 		selected = providers.Providers[picked]
-		fmt.Println()
 	}
 
 	return &selected, nil
 }
 
-func initJiraConfig(reader *bufio.Reader, cfg *config.LocalContext) error {
-	project, err := ui.PromptLine(reader, "Project Name (e.g. PROJ)")
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(project) == "" {
-		return fmt.Errorf("project name is required")
-	}
-	cfg.Remote.Project = strings.TrimSpace(project)
-
-	board, err := ui.PromptLine(reader, "Board ID (optional, press Enter to skip)")
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(board) != "" {
-		cfg.Remote.Board = strings.TrimSpace(board)
-	}
-
-	return nil
-}
-
-func initAzureConfig(reader *bufio.Reader, cfg *config.LocalContext) error {
+func promptForProject(reader *bufio.Reader, cfg *config.LocalContext) error {
 	project, err := ui.PromptLine(reader, "Project name")
 	if err != nil {
 		return err
@@ -233,12 +194,21 @@ func initAzureConfig(reader *bufio.Reader, cfg *config.LocalContext) error {
 	}
 	cfg.Remote.Project = strings.TrimSpace(project)
 
-	area, err := ui.PromptLine(reader, "Area path (optional, press Enter to skip)")
+	return nil
+}
+
+func promptForBindings(reader *bufio.Reader, cfg *config.LocalContext) error {
+	itemsStr, err := ui.PromptLine(reader, "Parent item IDs (comma-separated, or leave empty)")
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(area) != "" {
-		cfg.Remote.AreaPath = strings.TrimSpace(area)
+	if itemsStr != "" {
+		for id := range strings.SplitSeq(itemsStr, ",") {
+			id = strings.TrimSpace(id)
+			if id != "" {
+				cfg.Bindings = append(cfg.Bindings, id)
+			}
+		}
 	}
 
 	return nil

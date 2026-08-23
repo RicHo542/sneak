@@ -22,11 +22,13 @@ type RemoteContext struct {
 	// Shared information amongst Jira and Azure
 	Project string `yaml:"project"`
 
-	// Jira Settings
-	Board string `yaml:"board,omitempty"`
+	// Jira Settings - Removed for now, as we are always working with
+	// parent binding
+	// Board string `yaml:"board,omitempty"`
 
-	// Azure Settings
-	AreaPath string `yaml:"area,omitempty"`
+	// Azure Settings - Removed for now, as we are always working wiht
+	// parent binding
+	// AreaPath string `yaml:"area,omitempty"`
 }
 
 type ContextOverwrites struct {

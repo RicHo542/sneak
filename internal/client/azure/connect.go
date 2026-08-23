@@ -81,7 +81,6 @@ func (c *AzureProviderClient) GetUserIdent() (*objects.UserInfo, error) {
 
 	user := data.AuthenticatedUser
 
-	// TODO: Check if this can be removed...
 	/*
 		var userHandle string
 		// Prioritize AccountIds if available. Email second and displayed username last

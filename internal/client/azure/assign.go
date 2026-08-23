@@ -19,11 +19,6 @@ func (c *AzureProviderClient) AssignWorkItems(
 	items []*config.CacheItem,
 ) error {
 
-	project := lctx.Remote.Project
-	if project == "" {
-		return fmt.Errorf("azure project is required in context")
-	}
-
 	payload, err := json.Marshal([]azureWorkItemPatch{{
 		Op:    "add",
 		Path:  "/fields/System.AssignedTo",
@@ -41,7 +36,7 @@ func (c *AzureProviderClient) AssignWorkItems(
 			continue
 		}
 
-		apiURL := c.Endpoints.assignEndpoint(project, id)
+		apiURL := c.Endpoints.assignEndpoint(id)
 
 		req, err := http.NewRequestWithContext(ctx, "PATCH", apiURL, bytes.NewReader(payload))
 		if err != nil {

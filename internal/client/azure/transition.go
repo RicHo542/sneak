@@ -210,6 +210,7 @@ func (c *AzureProviderClient) getWorkItemTypeStates(
 ) ([]azureWorkItemState, error) {
 
 	apiURL := c.Endpoints.workItemTypeStatesEndpoint(workItemType)
+	fmt.Printf("Getting work item type states from: %s\n", apiURL)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {

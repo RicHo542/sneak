@@ -1,7 +1,6 @@
 package jira
 
 import (
-	"fmt"
 	"net/url"
 )
 
@@ -10,11 +9,18 @@ type JiraEndpoints struct {
 	host       string
 }
 
+func host2url(host string) *url.URL {
+	u, err := url.Parse(host)
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
+
 func (o *JiraEndpoints) myselfEndpoint() string {
-	return fmt.Sprintf(
-		"%s/rest/api/%s/myself",
-		o.host, o.apiVersion,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath("rest", "api", o.apiVersion, "myself")
+	return u.String()
 }
 
 func (o *JiraEndpoints) testEndpoint() string {
@@ -22,32 +28,25 @@ func (o *JiraEndpoints) testEndpoint() string {
 }
 
 func (o *JiraEndpoints) queryEndpoint() string {
-	return fmt.Sprintf(
-		"%s/rest/api/%s/search/jql",
-		o.host, o.apiVersion,
-	)
+	u := host2url(o.host)
+	u = u.JoinPath("rest", "api", o.apiVersion, "search", "jql")
+	return u.String()
 }
 
 func (o *JiraEndpoints) transitionEndpoint(issueKey string) string {
-	return fmt.Sprintf(
-		"%s/rest/api/%s/issue/%s/transitions",
-		o.host, o.apiVersion,
-		url.PathEscape(issueKey),
-	)
+	u := host2url(o.host)
+	u = u.JoinPath("rest", "api", o.apiVersion, "issue", issueKey, "transitions")
+	return u.String()
 }
 
 func (o *JiraEndpoints) commentEndpoint(issueKey string) string {
-	return fmt.Sprintf(
-		"%s/rest/api/%s/issue/%s/comment",
-		o.host, o.apiVersion,
-		url.PathEscape(issueKey),
-	)
+	u := host2url(o.host)
+	u = u.JoinPath("rest", "api", o.apiVersion, "issue", issueKey, "comment")
+	return u.String()
 }
 
 func (o *JiraEndpoints) assignEndpoint(issueKey string) string {
-	return fmt.Sprintf(
-		"%s/rest/api/%s/issue/%s/assignee",
-		o.host, o.apiVersion,
-		url.PathEscape(issueKey),
-	)
+	u := host2url(o.host)
+	u = u.JoinPath("rest", "api", o.apiVersion, "issue", issueKey, "assignee")
+	return u.String()
 }

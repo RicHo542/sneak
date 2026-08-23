@@ -3,7 +3,6 @@ package azure
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -27,15 +26,16 @@ func NewAzureProviderClient(
 	// Endpoints requiring it will not be used for testing the connection though
 	project := ""
 	if lctx != nil && lctx.Remote.Project != "" {
-		project = url.PathEscape(lctx.Remote.Project)
+		project = lctx.Remote.Project
 	}
 
 	return &AzureProviderClient{
 		Cfg:    cfg,
 		Client: client,
 		Endpoints: &AzureEndpoints{
-			host: host, apiVersion: "7.0",
-			organization: url.PathEscape(cfg.Organization),
+			host:         host,
+			apiVersion:   "7.0",
+			organization: cfg.Organization,
 			project:      project,
 		},
 	}

@@ -24,11 +24,6 @@ func (c *AzureProviderClient) AddCommentToWorkItems(
 ) error {
 	comment = strings.TrimSpace(comment)
 
-	project := lctx.Remote.Project
-	if project == "" {
-		return fmt.Errorf("azure project is required in context")
-	}
-
 	payload, err := json.Marshal(azureCommentRequest{Text: comment})
 	if err != nil {
 		return fmt.Errorf("bad request body: %w", err)
@@ -42,7 +37,7 @@ func (c *AzureProviderClient) AddCommentToWorkItems(
 			continue
 		}
 
-		apiURL := c.Endpoints.workItemCommentsEndpoint(project, id)
+		apiURL := c.Endpoints.workItemCommentsEndpoint(id)
 
 		req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(payload))
 		if err != nil {
