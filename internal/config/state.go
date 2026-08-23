@@ -22,12 +22,28 @@ type ActiveTask struct {
 	ActivatedAt time.Time `json:"activated_ts"`
 }
 
-func stateFilePath(dir string) string {
-	return filepath.Join(dir, LocalConfigDir, LocalStateFile)
+func stateDir() (string, error) {
+	base, err := SneakConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, "state"), nil
 }
 
-func LoadState(dir string) (*State, error) {
-	path := stateFilePath(dir)
+// stateFilePath resolves the state file location for a given project
+func stateFilePath(projectID string) (string, error) {
+	sd, err := stateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(sd, projectID+".json"), nil
+}
+
+func LoadState(projectID string) (*State, error) {
+	path, err := stateFilePath(projectID)
+	if err != nil {
+		return nil, err
+	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -45,10 +61,13 @@ func LoadState(dir string) (*State, error) {
 	return &state, nil
 }
 
-func SaveState(dir string, state *State) error {
-	sneakDir := filepath.Join(dir, LocalConfigDir)
-	if err := os.MkdirAll(sneakDir, 0755); err != nil {
-		return fmt.Errorf("failed to create %s: %w", sneakDir, err)
+func SaveState(projectID string, state *State) error {
+	sd, err := stateDir()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(sd, 0700); err != nil {
+		return fmt.Errorf("failed to create %s: %w", sd, err)
 	}
 
 	data, err := json.MarshalIndent(state, "", "  ")
@@ -56,7 +75,10 @@ func SaveState(dir string, state *State) error {
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
-	path := stateFilePath(dir)
+	path, err := stateFilePath(projectID)
+	if err != nil {
+		return err
+	}
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", path, err)
 	}

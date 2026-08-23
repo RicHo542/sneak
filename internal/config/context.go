@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +11,7 @@ import (
 )
 
 type LocalContext struct {
+	ProjectID   string                 `yaml:"project_id"`
 	Remote      RemoteContext          `yaml:"remote"`
 	Bindings    []string               `yaml:"bindings"`
 	Transitions map[string]WorkflowMap `yaml:"transitions,omitempty"`
@@ -37,18 +40,25 @@ type ContextOverwrites struct {
 
 // TransitionRef describes how to move a work item into a target state.
 // TransitionKey is the provider-specific token required by the API
-// (Jira: the numeric transition ID; Azure: the state name), while
-// DisplayName is a human-readable label of the target state.
 type TransitionRef struct {
 	TransitionKey string `yaml:"transition_key,omitempty"`
 	DisplayName   string `yaml:"display_name,omitempty"`
 }
 
 // WorkflowMap is the two-hop workflow (start, done) for a work item type.
-// The map is keyed by work item type with "default" as the fallback key.
 type WorkflowMap struct {
 	Start TransitionRef `yaml:"start"`
 	Done  TransitionRef `yaml:"done"`
+}
+
+// GenerateProjectID returns a random cache identifier used for persisting the local
+// cache in config directory
+func GenerateProjectID() string {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return fmt.Sprintf("fallback-%d", os.Getpid())
+	}
+	return hex.EncodeToString(buf)
 }
 
 func LoadContext(dir string) (*LocalContext, error) {
@@ -62,6 +72,14 @@ func LoadContext(dir string) (*LocalContext, error) {
 	var ctx LocalContext
 	if err := yaml.Unmarshal(data, &ctx); err != nil {
 		return nil, fmt.Errorf("failed to parse %s: %w", configPath, err)
+	}
+
+	// Should never be the case, but here as a safety net
+	if ctx.ProjectID == "" {
+		ctx.ProjectID = GenerateProjectID()
+		if err := StoreLocalContext(dir, &ctx); err != nil {
+			return nil, fmt.Errorf("failed to persist generated project id: %w", err)
+		}
 	}
 
 	return &ctx, nil

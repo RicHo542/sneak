@@ -96,7 +96,7 @@ func processStartCommand(
 	CommentCacheItems(app, cachedTasks, comment)
 
 	app.State.AddActiveTasks(cachedTasks, true, branchName)
-	if err := config.SaveState(app.Dir, app.State); err != nil {
+	if err := config.SaveState(app.LocalContext.ProjectID, app.State); err != nil {
 		fmt.Println("Failed to save tasks to local state")
 	}
 

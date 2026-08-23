@@ -87,7 +87,7 @@ func initApp(cmd *cobra.Command, app *App) error {
 	}
 	app.Client = c
 
-	state, err := config.LoadState(dir)
+	state, err := config.LoadState(localCtx.ProjectID)
 	if err != nil {
 		return nil
 	}

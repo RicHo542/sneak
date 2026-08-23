@@ -51,6 +51,7 @@ func initialize(ctx context.Context, dir string) error {
 	}
 
 	cfg := &config.LocalContext{
+		ProjectID: config.GenerateProjectID(),
 		Remote: config.RemoteContext{
 			Host: provider.Host,
 			Type: provider.Type,

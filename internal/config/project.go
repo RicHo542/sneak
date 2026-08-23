@@ -9,7 +9,6 @@ import (
 var (
 	LocalConfigDir  = ".sneak"
 	LocalConfigFile = "config.yaml"
-	LocalStateFile  = "state.json"
 )
 
 var ErrNoProjectFound = errors.New(

@@ -53,7 +53,7 @@ func RefreshCache(app *App) error {
 
 	reconcileActiveTasks(state, cacheItems)
 
-	if err := config.SaveState(app.Dir, state); err != nil {
+	if err := config.SaveState(app.LocalContext.ProjectID, state); err != nil {
 		return fmt.Errorf("failed to save cache: %w", err)
 	}
 
