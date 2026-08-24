@@ -3,9 +3,7 @@ package jira
 import "strings"
 
 // adfToText converts an Atlassian Document Format (ADF) node tree into
-// plain text. Jira Cloud returns description/comment bodies as ADF rather
-// than plain strings; sneak only ever displays plain text for these
-// fields, so we flatten the tree, preserving paragraph breaks.
+// plain text.
 func adfToText(node jiraADFNode) string {
 	var b strings.Builder
 	writeADFNode(&b, node)
