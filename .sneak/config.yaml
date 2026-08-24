@@ -1,181 +1,50 @@
-project_id: 9252f24c772a69b34213b958279c5c7a
+project_id: 52c7f65268dcf4eb8eecf86365296117
 remote:
-    host: https://tfs.intra.infineon.com/tfs
-    type: azure
-    project: MDI PCA AAI
+    host: https://richo542.atlassian.net
+    type: jira
+    project: SCRUM
 bindings:
-    - "400189"
+    - SCRUM-1
 transitions:
-    Agile Release Train:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
     Bug:
         start:
-            transition_key: Active
-            display_name: Active
+            transition_key: "21"
+            display_name: In Progress
         done:
-            transition_key: Closed
-            display_name: Closed
-    Business Project:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Capability:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Code Review Request:
-        start: {}
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Code Review Response:
-        start:
-            transition_key: Accepted
-            display_name: Accepted
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Dependency Request:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Accepted
-            display_name: Accepted
+            transition_key: "41"
+            display_name: Done
     Epic:
         start:
-            transition_key: Active
-            display_name: Active
+            transition_key: "21"
+            display_name: In Progress
         done:
-            transition_key: Closed
-            display_name: Closed
+            transition_key: "41"
+            display_name: Done
     Feature:
         start:
-            transition_key: Active
-            display_name: Active
+            transition_key: "21"
+            display_name: In Progress
         done:
-            transition_key: Closed
-            display_name: Closed
-    Feedback Request:
+            transition_key: "41"
+            display_name: Done
+    Story:
         start:
-            transition_key: Active
-            display_name: Active
+            transition_key: "21"
+            display_name: In Progress
         done:
-            transition_key: Closed
-            display_name: Closed
-    Feedback Response:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Increment:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Issue:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
-    PI Objective:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Program Increment:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Risk:
-        start:
-            transition_key: Resolved
-            display_name: Resolved
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Shared Parameter:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Inactive
-            display_name: Inactive
-    Shared Steps:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
+            transition_key: "41"
+            display_name: Done
     Task:
         start:
-            transition_key: Active
-            display_name: Active
+            transition_key: "21"
+            display_name: In Progress
         done:
-            transition_key: Closed
-            display_name: Closed
-    Technical Debt:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Test Case:
-        start:
-            transition_key: Ready
-            display_name: Ready
-        done:
-            transition_key: Closed
-            display_name: Closed
-    Test Plan:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Inactive
-            display_name: Inactive
-    Test Suite:
-        start:
-            transition_key: In Planning
-            display_name: In Planning
-        done:
-            transition_key: Completed
-            display_name: Completed
-    User Story:
-        start:
-            transition_key: Active
-            display_name: Active
-        done:
-            transition_key: Closed
-            display_name: Closed
+            transition_key: "41"
+            display_name: Done
     default:
         start:
-            transition_key: Active
-            display_name: Active
+            transition_key: "21"
+            display_name: In Progress
         done:
-            transition_key: Closed
-            display_name: Closed
+            transition_key: "41"
+            display_name: Done
