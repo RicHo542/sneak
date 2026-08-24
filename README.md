@@ -5,9 +5,8 @@
 # sneak
 
 Sneak lets you claim, update and close tasks - User Stories, Bugs and more -
-right from the terminal. It reduces the red tape of SAFe work methods by
-tracking what you started, syncing statuses with your provider and keeping
-your local state in sync, all without leaving your codebase.
+right from the terminal. It reduces organizational red tape for work item tracking
+and allows you to manage your tasks right where you are - the terminal.
 
 ## Commands
 
