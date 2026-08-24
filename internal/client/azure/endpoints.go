@@ -72,6 +72,25 @@ func (o *AzureEndpoints) workItemEndpoint(id int) string {
 	return u.String()
 }
 
+func (o *AzureEndpoints) workItemDetailEndpoint(id int) string {
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "workitems", strconv.Itoa(id))
+
+	q := url.Values{}
+	q.Set("api-version", o.apiVersion)
+	q.Set("fields", strings.Join([]string{
+		"System.Title",
+		"System.Description",
+		"System.CreatedDate",
+		"System.CreatedBy",
+		"System.IterationPath",
+		"System.AssignedTo",
+	}, ","))
+
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
 func (o *AzureEndpoints) workItemCommentsEndpoint(id int) string {
 	u := host2url(o.host)
 	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "workitems", strconv.Itoa(id), "comments")
@@ -80,6 +99,25 @@ func (o *AzureEndpoints) workItemCommentsEndpoint(id int) string {
 	q.Set("api-version", o.apiVersion+"-preview")
 
 	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+func (o *AzureEndpoints) workItemCommentsListEndpoint(id int, top int) string {
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_apis", "wit", "workitems", strconv.Itoa(id), "comments")
+
+	q := url.Values{}
+	q.Set("api-version", o.apiVersion+"-preview")
+	q.Set("$top", strconv.Itoa(top))
+	q.Set("order", "desc")
+
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+func (o *AzureEndpoints) workItemWebEndpoint(id int) string {
+	u := host2url(o.host)
+	u = u.JoinPath(o.organization, o.project, "_workitems", "edit", strconv.Itoa(id))
 	return u.String()
 }
 

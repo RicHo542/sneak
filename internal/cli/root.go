@@ -53,6 +53,7 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		newCommentCmd(app),
 		newCloseCmd(app),
 		newStatusCmd(app),
+		newDescribeCmd(app),
 	)
 
 	return root
