@@ -1,4 +1,4 @@
-.PHONY: build build-all build-macos build-linux build-windows test clean
+.PHONY: build build-all build-macos build-linux build-windows install-mac install-wsl test clean
 
 BINARY 	:= sneak
 VERSION := 0.0.1
@@ -50,6 +50,14 @@ install-wsl: build-linux
 	@sudo mv /tmp/$(BINARY) /usr/local/bin/$(BINARY)
 	@sudo chmod +x /usr/local/bin/$(BINARY)
 	@hash -r
+	@echo "Installed $$(sneak version 2>/dev/null || echo $(BINARY)) to /usr/local/bin/$(BINARY)"
+
+install-macos: build-macos
+	@echo "Installing sneak for macOS..."
+	@sudo mkdir -p /usr/local/bin
+	@tar -xzf bin/$(BINARY)-$(VERSION)-darwin-arm64.tar.gz -C /tmp
+	@sudo mv /tmp/$(BINARY) /usr/local/bin/$(BINARY)
+	@sudo chmod +x /usr/local/bin/$(BINARY)
 	@echo "Installed $$(sneak version 2>/dev/null || echo $(BINARY)) to /usr/local/bin/$(BINARY)"
 
 test:
