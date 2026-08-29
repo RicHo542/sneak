@@ -96,7 +96,7 @@ func processStartCommand(
 	CommentCacheItems(app, cachedTasks, comment)
 
 	app.State.AddActiveTasks(cachedTasks, true, branchName)
-	if err := config.SaveState(app.LocalContext.ProjectID, app.State); err != nil {
+	if err := app.SaveState(); err != nil {
 		fmt.Println("Failed to save tasks to local state")
 	}
 
@@ -104,7 +104,7 @@ func processStartCommand(
 }
 
 func createBranchFromTasks(tasks []*config.CacheItem) (string, error) {
-	if !git.NewGitClient().IsRepo() {
+	if !git.NewGitClient().IsRepo(".") {
 		return "", fmt.Errorf("current context does not seem to be a git repository.")
 	}
 

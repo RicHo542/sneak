@@ -2,8 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/git"
 	"github.com/richo542/sneak/internal/ui"
 )
 
@@ -71,4 +74,35 @@ func resolveTaskFocus(
 		return nil, fmt.Errorf("failed task selection.")
 	}
 	return selection, nil
+}
+
+func DiscoverGitRepos(dir string, multirepo bool) ([]string, error) {
+	gc := git.NewGitClient()
+	if gc.IsRepo(dir) {
+		return []string{dir}, nil
+	}
+
+	if !multirepo {
+		return []string{}, nil
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read dir %s: %w", dir, err)
+	}
+
+	var repos []string
+
+	for _, candidate := range entries {
+		if !candidate.IsDir() {
+			continue
+		}
+
+		candidatePath := filepath.Join(dir, candidate.Name())
+		if gc.IsRepo(candidatePath) {
+			repos = append(repos, candidatePath)
+		}
+	}
+
+	return repos, nil
 }

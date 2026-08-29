@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 type State struct {
+	ProjectDir  string       `json:"project_dir"`
 	Cache       Cache        `json:"cache"`
 	ActiveTasks []ActiveTask `json:"active_tasks"`
 }
@@ -20,6 +22,11 @@ type ActiveTask struct {
 	Managed     bool      `json:"managed"`
 	Branch      string    `json:"branch,omitempty"`
 	ActivatedAt time.Time `json:"activated_ts"`
+}
+
+type ActiveStates struct {
+	Key string
+	Dir string
 }
 
 func stateDir() (string, error) {
@@ -84,6 +91,53 @@ func SaveState(projectID string, state *State) error {
 	}
 
 	return nil
+}
+
+// DiscoverStates returns all currently tracked active states.
+func DiscoverStates() ([]ActiveStates, error) {
+	sd, err := stateDir()
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := os.ReadDir(sd)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []ActiveStates{}, nil
+		}
+		return nil, fmt.Errorf("failed to read state dir %s: %w", sd, err)
+	}
+
+	var states []ActiveStates
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		id := strings.TrimSuffix(entry.Name(), ".json")
+
+		state, err := LoadState(id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load state '%s': %w", id, err)
+		}
+
+		if state.ProjectDir == "" {
+			continue
+		}
+
+		info, err := os.Stat(state.ProjectDir)
+		if err != nil || !info.IsDir() {
+			fmt.Printf("Skipping state '%s': project directory '%s' does not exist\n", id, state.ProjectDir)
+			continue
+		}
+
+		states = append(states, ActiveStates{
+			Key: id,
+			Dir: state.ProjectDir,
+		})
+	}
+
+	return states, nil
 }
 
 func (s *State) activeTaskIndex() map[string]int {

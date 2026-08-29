@@ -7,6 +7,7 @@ import (
 
 	"github.com/richo542/sneak/internal/client/objects"
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/git"
 )
 
 const (
@@ -124,11 +125,40 @@ func PrintWorkItemDetail(detail *objects.WorkItemDetail) {
 	}
 }
 
+// RepoSummary is a standup summary entry for a single repository.
+type RepoSummary struct {
+	Path    string
+	Author  string
+	Commits []git.Commit
+}
+
+// PrintStandupSummary renders a per-repository git commit overview.
+func PrintStandupSummary(summaries []RepoSummary) {
+	for _, s := range summaries {
+		fmt.Printf("\n%s%s%s\n", ColorTeal, s.Path, ColorReset)
+		fmt.Println(strings.Repeat("-", 100))
+
+		if len(s.Commits) == 0 {
+			Printfln("%sNo commits by %s in this period.%s", ColorGray, s.Author, ColorReset)
+			continue
+		}
+
+		for _, c := range s.Commits {
+			shortHash := c.Hash
+			if len(shortHash) > 7 {
+				shortHash = shortHash[:7]
+			}
+			date := c.Date
+			if len(date) > 19 {
+				date = date[:19]
+			}
+			fmt.Printf("%s%s %s %s%s\n", ColorGray, date, shortHash, c.Message, ColorReset)
+		}
+	}
+}
+
 func timeAgo(t time.Time) string {
 	d := time.Since(t)
-	if d < 0 {
-		d = 0
-	}
 
 	switch {
 	case d < time.Minute:

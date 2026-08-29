@@ -64,7 +64,7 @@ func processCloseCmd(app *App, cacheItems []*config.CacheItem, comment string) e
 	CommentCacheItems(app, cacheItems, comment)
 
 	app.State.RemoveActiveTasks(cacheItems)
-	if err := config.SaveState(app.LocalContext.ProjectID, app.State); err != nil {
+	if err := app.SaveState(); err != nil {
 		fmt.Println("Failed to save local state")
 	}
 

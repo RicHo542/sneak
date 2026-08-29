@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,14 +10,21 @@ import (
 
 type GitClient struct{}
 
+// Commit is a single commit entry in a git history.
+type Commit struct {
+	Hash    string
+	Author  string
+	Date    string
+	Message string
+}
+
 func NewGitClient() *GitClient {
 	return &GitClient{}
 }
 
-// IsRepo checks if the current directory is a
-// valid git repository
-func (c *GitClient) IsRepo() bool {
-	err := exec.Command("git", "rev-parse", "--git-dir").Run()
+// IsRepo checks if the given path is a valid git repository
+func (c *GitClient) IsRepo(path string) bool {
+	err := exec.Command("git", "-C", path, "rev-parse", "--git-dir").Run()
 	return err == nil
 }
 
@@ -60,4 +68,67 @@ func (c *GitClient) IsWorkingTreeClean() (bool, error) {
 	}
 
 	return len(output) == 0, nil
+}
+
+// GetGitUser returns the git user identifier (name, falling back to email) of the
+// authenticated user within the given repository. It returns an empty string if no
+// identity is configured.
+func (c *GitClient) GetGitUser(repo string) (string, error) {
+	for _, key := range []string{"user.name", "user.email"} {
+		output, err := exec.Command("git", "-C", repo, "config", "--get", key).Output()
+		if err != nil {
+			continue
+		}
+		if name := strings.TrimSpace(string(output)); name != "" {
+			return name, nil
+		}
+	}
+	return "", fmt.Errorf("no git identity configured in '%s'", repo)
+}
+
+// LogCommits returns the structured commit history of the given repository within
+// the time window, optionally filtered to a single author.
+func (c *GitClient) LogCommits(repo, since, author string) ([]Commit, error) {
+	args := []string{
+		"-C", repo,
+		"log",
+		"--since=" + since,
+		"--pretty=format:%H%x1f%an%x1f%ad%x1f%s",
+		"--date=iso-strict",
+	}
+	if author != "" {
+		args = append(args, "--author="+author)
+	}
+
+	output, err := exec.Command("git", args...).Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get git log in '%s': %v", repo, err)
+	}
+
+	var commits []Commit
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		parts := strings.Split(line, "\x1f")
+		if len(parts) != 4 {
+			continue
+		}
+
+		commits = append(commits, Commit{
+			Hash:    parts[0],
+			Author:  parts[1],
+			Date:    parts[2],
+			Message: parts[3],
+		})
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read git log output: %v", err)
+	}
+
+	return commits, nil
 }
