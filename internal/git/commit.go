@@ -42,6 +42,22 @@ func StripTypePrefix(msg string) string {
 	return strings.TrimSpace(trimmed[colon+1:])
 }
 
+// DedupByHash removes commits with duplicate hashes, keeping the first
+// occurrence and preserving order. Used to collapse the same commit reachable
+// from multiple branches when using --all.
+func DedupByHash(commits []Commit) []Commit {
+	seen := make(map[string]struct{}, len(commits))
+	deduped := make([]Commit, 0, len(commits))
+	for _, c := range commits {
+		if _, ok := seen[c.Hash]; ok {
+			continue
+		}
+		seen[c.Hash] = struct{}{}
+		deduped = append(deduped, c)
+	}
+	return deduped
+}
+
 // CompactByMessage collapses runs of consecutive commits whose normalized
 // messages match into a single entry, keeping the leading commit as the
 // representative row and summing the count.

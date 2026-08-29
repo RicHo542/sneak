@@ -11,8 +11,9 @@ import (
 
 func newStandupCmd() *cobra.Command {
 	var (
-		days    int
-		verbose bool
+		days        int
+		verbose     bool
+		allBranches bool
 	)
 
 	cmd := &cobra.Command{
@@ -25,13 +26,16 @@ The summary contains the git commit history of the given period, filtered to
 the current user's git identity.
 
 Use '--days' to control the look-back period (defaults to 1 day).
+Use '--all-branches' to include work from all local branches, not just the
+currently checked-out one.
 Use '--verbose' to also list repos without changes in the period.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStandupCmd(days, verbose)
+			return runStandupCmd(days, verbose, allBranches)
 		},
 	}
 
 	cmd.Flags().IntVarP(&days, "days", "d", 1, "Number of days to look back for the summary.")
+	cmd.Flags().BoolVarP(&allBranches, "all-branches", "a", false, "Include work from all local branches.")
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "List all found repos, including those without changes.")
 
 	return cmd
@@ -43,7 +47,7 @@ type projectInfo struct {
 }
 
 func runStandupCmd(
-	days int, verbose bool,
+	days int, verbose bool, allBranches bool,
 ) error {
 
 	projects, err := findProjectRepositories()
@@ -68,11 +72,14 @@ func runStandupCmd(
 				continue
 			}
 
-			commits, err := gc.LogCommits(repo, since, author)
+			commits, err := gc.LogCommits(repo, since, author, allBranches)
 			if err != nil {
 				return err
 			}
 
+			// Dedup identical commits first (the same commit may be reached from
+			// multiple branches with --all), then collapse repeated messages.
+			commits = git.DedupByHash(commits)
 			commits = git.CompactByMessage(commits)
 
 			if len(commits) == 0 {

@@ -92,14 +92,19 @@ func (c *GitClient) GetGitUser(repo string) (string, error) {
 }
 
 // LogCommits returns the structured commit history of the given repository within
-// the time window, optionally filtered to a single author.
-func (c *GitClient) LogCommits(repo, since, author string) ([]Commit, error) {
+// the time window, optionally filtered to a single author. When allBranches is
+// set, commits from every local branch are included; otherwise only commits
+// reachable from HEAD are returned.
+func (c *GitClient) LogCommits(repo, since, author string, allBranches bool) ([]Commit, error) {
 	args := []string{
 		"-C", repo,
 		"log",
 		"--since=" + since,
 		"--pretty=format:%H%x1f%an%x1f%ad%x1f%s",
 		"--date=iso-strict",
+	}
+	if allBranches {
+		args = append(args, "--all")
 	}
 	if author != "" {
 		args = append(args, "--author="+author)
