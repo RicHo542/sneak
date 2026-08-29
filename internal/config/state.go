@@ -93,6 +93,19 @@ func SaveState(projectID string, state *State) error {
 	return nil
 }
 
+// RemoveState deletes the state file for the given project. A missing file is
+// not treated as an error.
+func RemoveState(projectID string) error {
+	path, err := stateFilePath(projectID)
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove %s: %w", path, err)
+	}
+	return nil
+}
+
 // DiscoverStates returns all currently tracked active states.
 func DiscoverStates() ([]ActiveStates, error) {
 	sd, err := stateDir()
@@ -121,13 +134,11 @@ func DiscoverStates() ([]ActiveStates, error) {
 			return nil, fmt.Errorf("failed to load state '%s': %w", id, err)
 		}
 
-		if state.ProjectDir == "" {
-			continue
-		}
-
-		info, err := os.Stat(state.ProjectDir)
-		if err != nil || !info.IsDir() {
-			fmt.Printf("Skipping state '%s': project directory '%s' does not exist\n", id, state.ProjectDir)
+		if isOrphanedState(state) {
+			fmt.Printf("Skipping state '%s': project directory '%s' is no longer a sneak project\n", id, state.ProjectDir)
+			if err := RemoveState(id); err != nil {
+				return nil, err
+			}
 			continue
 		}
 
@@ -138,6 +149,26 @@ func DiscoverStates() ([]ActiveStates, error) {
 	}
 
 	return states, nil
+}
+
+// isOrphanedState reports whether the state belongs to a project directory that
+// no longer hosts a sneak context, either because the directory is gone or its
+// .sneak directory was removed.
+func isOrphanedState(state *State) bool {
+	if state.ProjectDir == "" {
+		return true
+	}
+
+	info, err := os.Stat(state.ProjectDir)
+	if err != nil || !info.IsDir() {
+		return true
+	}
+
+	if _, err := os.Stat(filepath.Join(state.ProjectDir, LocalConfigDir)); err != nil {
+		return true
+	}
+
+	return false
 }
 
 func (s *State) activeTaskIndex() map[string]int {

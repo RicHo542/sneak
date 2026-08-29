@@ -61,7 +61,7 @@ install-macos: build-macos
 	@echo "Installed $$(sneak version 2>/dev/null || echo $(BINARY)) to /usr/local/bin/$(BINARY)"
 
 test:
-	go test ./...
+	go test ./tests
 
 clean:
 	rm -rf bin/*

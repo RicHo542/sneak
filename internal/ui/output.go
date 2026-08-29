@@ -2,12 +2,14 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/richo542/sneak/internal/client/objects"
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
+	"golang.org/x/term"
 )
 
 const (
@@ -16,19 +18,51 @@ const (
 	ColorWhite = "\033[1;37m"
 	ColorGray  = "\033[38;2;126;140;155m"
 	ColorReset = "\033[0m"
+	ColorRed   = "\033[38;2;255;100;100m"
 )
 
+// useColor reports whether ANSI colors should be emitted: only when output is an
+// interactive terminal and the NO_COLOR convention has not opted out.
+func useColor() bool {
+	if _, ok := os.LookupEnv("NO_COLOR"); ok {
+		return false
+	}
+	return term.IsTerminal(int(os.Stdout.Fd()))
+}
+
+// Color returns the ANSI escape matching code when colors are enabled, or an
+// empty string otherwise.
+func Color(code string) string {
+	if useColor() {
+		return code
+	}
+	return ""
+}
+
+// colorForCommitType returns the display color for a commit type. As a light
+// touch, only 'feat' and 'fix' are highlighted; everything else stays gray.
+func colorForCommitType(commitType string) string {
+	switch commitType {
+	case "feat":
+		return ColorTeal
+	case "fix":
+		return ColorRed
+	default:
+		return ColorGray
+	}
+}
+
 func PrintBanner() {
-	textArt := ColorWhite + `
+	textArt := Color(ColorWhite) + `
   ███████╗███╗   ██╗███████╗███████╗██╗  ██╗
   ██╔════╝████╗  ██║██╔════╝██╔══██╗██║ ██║
   ███████╗██╔██╗ ██║█████╗  ███████║██║██║
   ╚════██║██║╚██╗██║██╔══╝  ██╔══██║██║ ██║
   ███████║██║ ╚████║███████╗██║  ██║██║  ██║
-  ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝` + ColorTeal + `__` + ColorReset + `
+  ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝` + Color(ColorTeal) + `__` + Color(ColorReset) + `
 `
 
-	tagline := ColorGray + "   	 sneak: minimize red tape_" + ColorReset + "\n"
+	tagline := Color(ColorGray) + "   	 sneak: minimize red tape_" + Color(ColorReset) + "\n"
 
 	fmt.Print(textArt)
 	fmt.Println(tagline)
@@ -132,27 +166,66 @@ type RepoSummary struct {
 	Commits []git.Commit
 }
 
-// PrintStandupSummary renders a per-repository git commit overview.
-func PrintStandupSummary(summaries []RepoSummary) {
-	for _, s := range summaries {
-		fmt.Printf("\n%s%s%s\n", ColorTeal, s.Path, ColorReset)
-		fmt.Println(strings.Repeat("-", 100))
+// ProjectSummary groups the repository summaries of a single sneak project.
+type ProjectSummary struct {
+	Root  string
+	Repos []RepoSummary
+}
 
-		if len(s.Commits) == 0 {
-			Printfln("%sNo commits by %s in this period.%s", ColorGray, s.Author, ColorReset)
-			continue
+// PrintStandupSummary renders a per-project, per-repository git commit overview.
+func PrintStandupSummary(projects []ProjectSummary, noChange []string) {
+	for _, p := range projects {
+		// Multi-repo projects show a project header, single-repo projects are
+		// rendered directly to keep the common case compact.
+		if len(p.Repos) > 1 {
+			fmt.Printf("\n%s%s%s\n", Color(ColorWhite), p.Root, Color(ColorReset))
 		}
 
-		for _, c := range s.Commits {
-			shortHash := c.Hash
-			if len(shortHash) > 7 {
-				shortHash = shortHash[:7]
+		for _, s := range p.Repos {
+			if len(p.Repos) > 1 && s.Path != p.Root {
+				fmt.Printf("\n  %s%s%s\n", Color(ColorTeal), s.Path, Color(ColorReset))
+			} else {
+				fmt.Printf("\n%s%s%s\n", Color(ColorTeal), s.Path, Color(ColorReset))
 			}
-			date := c.Date
-			if len(date) > 19 {
-				date = date[:19]
+			fmt.Println(strings.Repeat("-", 100))
+
+			for _, c := range s.Commits {
+				shortHash := c.Hash
+				if len(shortHash) > 7 {
+					shortHash = shortHash[:7]
+				}
+				date := c.Date
+				if len(date) > 19 {
+					date = date[:19]
+				}
+
+				commitType := c.Type
+				if commitType == "" {
+					commitType = "-"
+				}
+
+				message := c.Message
+				if c.Type != "" {
+					message = git.StripTypePrefix(message)
+				}
+				if c.Count > 1 {
+					message = fmt.Sprintf("%s (x%d)", message, c.Count)
+				}
+
+				typeColor := Color(colorForCommitType(commitType))
+				fmt.Printf("%s%s  %s%-8s%s %s  %s%s\n",
+					Color(ColorGray), date,
+					typeColor, commitType, Color(ColorReset),
+					shortHash, message, Color(ColorReset),
+				)
 			}
-			fmt.Printf("%s%s %s %s%s\n", ColorGray, date, shortHash, c.Message, ColorReset)
+		}
+	}
+
+	if len(noChange) > 0 {
+		fmt.Printf("\n%sNo changes in:%s\n", Color(ColorWhite), Color(ColorReset))
+		for _, repo := range noChange {
+			fmt.Printf("  %s%s%s\n", Color(ColorGray), repo, Color(ColorReset))
 		}
 	}
 }

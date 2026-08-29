@@ -16,6 +16,11 @@ type Commit struct {
 	Author  string
 	Date    string
 	Message string
+	// Type is the parsed conventional-commit type (feat, fix, ...) or "".
+	Type string
+	// Count is the number of merged commits represented by this entry; 1 for a
+	// single commit.
+	Count int
 }
 
 func NewGitClient() *GitClient {
@@ -124,6 +129,8 @@ func (c *GitClient) LogCommits(repo, since, author string) ([]Commit, error) {
 			Author:  parts[1],
 			Date:    parts[2],
 			Message: parts[3],
+			Type:    CommitType(parts[3]),
+			Count:   1,
 		})
 	}
 	if err := scanner.Err(); err != nil {

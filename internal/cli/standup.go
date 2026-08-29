@@ -11,36 +11,42 @@ import (
 
 func newStandupCmd() *cobra.Command {
 	var (
-		days      int
-		multirepo bool
+		days    int
+		verbose bool
 	)
 
 	cmd := &cobra.Command{
-		Use:   "sup",
-		Short: "Get a standup summary of all your work",
+		Use:     "sup",
+		Aliases: []string{"standup"},
+		Short:   "Get a standup summary of all your work",
 		Long: `Get a standup summary of all your work.
 This summary will be made for all repositories connected to sneak somehow.
 The summary contains the git commit history of the given period, filtered to
 the current user's git identity.
 
 Use '--days' to control the look-back period (defaults to 1 day).
-Use '--multirepo' to also scan for repos at the sneak projects' root dir.`,
+Use '--verbose' to also list repos without changes in the period.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStandupCmd(days, multirepo)
+			return runStandupCmd(days, verbose)
 		},
 	}
 
-	cmd.Flags().IntVar(&days, "days", 1, "Number of days to look back for the summary.")
-	cmd.Flags().BoolVarP(&multirepo, "multirepo", "m", false, "Whether to check for different repos at sneak root dirs.")
+	cmd.Flags().IntVarP(&days, "days", "d", 1, "Number of days to look back for the summary.")
+	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "List all found repos, including those without changes.")
 
 	return cmd
 }
 
+type projectInfo struct {
+	Dir   string
+	Repos []string
+}
+
 func runStandupCmd(
-	days int, multirepo bool,
+	days int, verbose bool,
 ) error {
 
-	repos, err := findAllKnownRepositories(multirepo)
+	projects, err := findProjectRepositories()
 	if err != nil {
 		return err
 	}
@@ -48,45 +54,72 @@ func runStandupCmd(
 	since := fmt.Sprintf("%d days ago", days)
 	gc := git.NewGitClient()
 
-	summaries := make([]ui.RepoSummary, 0, len(repos))
-	for _, repo := range repos {
-		author, err := gc.GetGitUser(repo)
-		if err != nil {
-			ui.Printfln("Skipping '%s': %v", repo, err)
-			continue
+	summaries := make([]ui.ProjectSummary, 0, len(projects))
+	var noChange []string
+	for _, proj := range projects {
+		project := ui.ProjectSummary{Root: proj.Dir}
+
+		for _, repo := range proj.Repos {
+			author, err := gc.GetGitUser(repo)
+			if err != nil {
+				if verbose {
+					ui.Printfln("Skipping '%s': %v", repo, err)
+				}
+				continue
+			}
+
+			commits, err := gc.LogCommits(repo, since, author)
+			if err != nil {
+				return err
+			}
+
+			commits = git.CompactByMessage(commits)
+
+			if len(commits) == 0 {
+				if verbose {
+					noChange = append(noChange, repo)
+				}
+				continue
+			}
+
+			project.Repos = append(project.Repos, ui.RepoSummary{
+				Path:    repo,
+				Author:  author,
+				Commits: commits,
+			})
 		}
 
-		commits, err := gc.LogCommits(repo, since, author)
-		if err != nil {
-			return err
+		if len(project.Repos) > 0 {
+			summaries = append(summaries, project)
 		}
-
-		summaries = append(summaries, ui.RepoSummary{
-			Path:    repo,
-			Author:  author,
-			Commits: commits,
-		})
 	}
 
-	ui.PrintStandupSummary(summaries)
+	ui.PrintStandupSummary(summaries, noChange)
 	return nil
 }
 
-func findAllKnownRepositories(multirepo bool) ([]string, error) {
+func findProjectRepositories() ([]projectInfo, error) {
 	activeStates, err := config.DiscoverStates()
 	if err != nil {
 		return nil, err
 	}
 
-	var repos []string
+	projects := make([]projectInfo, 0, len(activeStates))
 	for _, s := range activeStates {
-		stateRepos, err := DiscoverGitRepos(s.Dir, multirepo)
+		stateRepos, err := DiscoverGitRepos(s.Dir)
 		if err != nil {
 			return nil, err
 		}
 
-		repos = append(repos, stateRepos...)
+		if len(stateRepos) == 0 {
+			continue
+		}
+
+		projects = append(projects, projectInfo{
+			Dir:   s.Dir,
+			Repos: stateRepos,
+		})
 	}
 
-	return repos, nil
+	return projects, nil
 }

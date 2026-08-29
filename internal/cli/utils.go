@@ -76,22 +76,18 @@ func resolveTaskFocus(
 	return selection, nil
 }
 
-func DiscoverGitRepos(dir string, multirepo bool) ([]string, error) {
+func DiscoverGitRepos(dir string) ([]string, error) {
 	gc := git.NewGitClient()
-	if gc.IsRepo(dir) {
-		return []string{dir}, nil
-	}
 
-	if !multirepo {
-		return []string{}, nil
+	var repos []string
+	if gc.IsRepo(dir) {
+		repos = append(repos, dir)
 	}
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dir %s: %w", dir, err)
 	}
-
-	var repos []string
 
 	for _, candidate := range entries {
 		if !candidate.IsDir() {
