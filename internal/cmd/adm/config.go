@@ -1,4 +1,4 @@
-package cli
+package adm
 
 import (
 	"bufio"
@@ -6,11 +6,21 @@ import (
 	"os"
 	"strings"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/client"
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
+
+func Register(appInst *app.App, build app.BuildInfo, root *cobra.Command) {
+	root.AddCommand(
+		newConfigCmd(),
+		newInitCmd(),
+		newBindCmd(appInst),
+		newVersionCmd(build),
+	)
+}
 
 func newConfigCmd() *cobra.Command {
 	var list bool

@@ -1,16 +1,28 @@
-package cli
+package view
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/handlers"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-func newListCmd(app *App) *cobra.Command {
+func Register(appInst *app.App, root *cobra.Command) {
+	root.AddCommand(
+		newListCmd(appInst),
+		newDescribeCmd(appInst),
+		newStatusCmd(appInst),
+		newStandupCmd(),
+		newOpenCmd(appInst),
+	)
+}
+
+func newListCmd(app *app.App) *cobra.Command {
 	var (
 		refresh    bool
 		typeFilter string
@@ -39,9 +51,9 @@ Use --refresh to force a live fetch from the provider.`,
 	return cmd
 }
 
-func runList(app *App, refresh bool, typeFilter string) error {
+func runList(app *app.App, refresh bool, typeFilter string) error {
 
-	refreshRequired, err := CheckAndRefreshCache(app, refresh)
+	refreshRequired, err := handlers.CheckAndRefreshCache(app, refresh)
 	if refreshRequired && err != nil {
 		return err
 	}

@@ -62,6 +62,7 @@ install-macos: build-macos
 
 test:
 	go test ./tests
+	go test ./...
 
 clean:
 	rm -rf bin/*

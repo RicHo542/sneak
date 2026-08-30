@@ -1,16 +1,14 @@
-package cli
+package handlers
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
-	"github.com/richo542/sneak/internal/git"
 	"github.com/richo542/sneak/internal/ui"
 )
 
-func HasInvalidTasks(app *App, tasks []string) ([]string, bool) {
+func HasInvalidTasks(app *app.App, tasks []string) ([]string, bool) {
 	// validate that task names are actually referring to
 	// existing tasks
 	var invalidTasks []string
@@ -30,20 +28,20 @@ func HasInvalidTasks(app *App, tasks []string) ([]string, bool) {
 	return invalidTasks, len(invalidTasks) > 0
 }
 
-func ResolveCloseTaskFocus(app *App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
+func ResolveCloseTaskFocus(app *app.App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
 	return resolveTaskFocus(app, taskKeys, all, app.State.GetActiveCacheItems)
 }
 
-func ResolveShipTaskFocus(app *App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
+func ResolveShipTaskFocus(app *app.App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
 	return resolveTaskFocus(app, taskKeys, all, app.State.GetActiveCacheItems)
 }
 
-func ResolveStartTaskFocus(app *App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
+func ResolveStartTaskFocus(app *app.App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
 	return resolveTaskFocus(app, taskKeys, all, app.State.GetNonActiveCacheItems)
 }
 
 func resolveTaskFocus(
-	app *App, taskKeys []string, all bool,
+	app *app.App, taskKeys []string, all bool,
 	candidateFunc func() ([]*config.CacheItem, error),
 ) ([]*config.CacheItem, error) {
 
@@ -74,31 +72,4 @@ func resolveTaskFocus(
 		return nil, fmt.Errorf("failed task selection.")
 	}
 	return selection, nil
-}
-
-func DiscoverGitRepos(dir string) ([]string, error) {
-	gc := git.NewGitClient()
-
-	var repos []string
-	if gc.IsRepo(dir) {
-		repos = append(repos, dir)
-	}
-
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read dir %s: %w", dir, err)
-	}
-
-	for _, candidate := range entries {
-		if !candidate.IsDir() {
-			continue
-		}
-
-		candidatePath := filepath.Join(dir, candidate.Name())
-		if gc.IsRepo(candidatePath) {
-			repos = append(repos, candidatePath)
-		}
-	}
-
-	return repos, nil
 }

@@ -1,11 +1,12 @@
-package cli
+package view
 
 import (
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-func newStatusCmd(app *App) *cobra.Command {
+func newStatusCmd(app *app.App) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -22,7 +23,7 @@ Useful to get a quick glance at what to close and what was started last time you
 	return cmd
 }
 
-func runStatusCmd(app *App) error {
+func runStatusCmd(app *app.App) error {
 	ui.PrintActiveTaskTable(app.State.ActiveTasks)
 	ui.Printfln("%d active items", len(app.State.ActiveTasks))
 	return nil

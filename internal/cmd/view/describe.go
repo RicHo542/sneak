@@ -1,13 +1,14 @@
-package cli
+package view
 
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-func newDescribeCmd(app *App) *cobra.Command {
+func newDescribeCmd(app *app.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "describe TASK_ID",
 		Short: "Show details for a work item",
@@ -27,7 +28,7 @@ Always fetches live from the provider; never uses the local cache.`,
 	return cmd
 }
 
-func runDescribeCmd(app *App, taskID string) error {
+func runDescribeCmd(app *app.App, taskID string) error {
 	detail, err := app.Client.DescribeWorkItem(app.Ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("failed to describe %s: %w", taskID, err)

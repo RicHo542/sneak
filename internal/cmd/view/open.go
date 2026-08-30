@@ -1,13 +1,14 @@
-package cli
+package view
 
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-func newOpenCmd(app *App) *cobra.Command {
+func newOpenCmd(app *app.App) *cobra.Command {
 	var printURL bool
 
 	cmd := &cobra.Command{
@@ -31,7 +32,7 @@ Use --print to only print the URL instead of opening the browser.`,
 	return cmd
 }
 
-func runOpenCmd(app *App, taskID string, printURL bool) error {
+func runOpenCmd(app *app.App, taskID string, printURL bool) error {
 	detail, err := app.Client.DescribeWorkItem(app.Ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("failed to resolve %s: %w", taskID, err)

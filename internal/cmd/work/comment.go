@@ -1,14 +1,16 @@
-package cli
+package work
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/richo542/sneak/internal/app"
+	"github.com/richo542/sneak/internal/handlers"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-func newCommentCmd(app *App) *cobra.Command {
+func newCommentCmd(app *app.App) *cobra.Command {
 	var (
 		comment string
 	)
@@ -33,15 +35,15 @@ func newCommentCmd(app *App) *cobra.Command {
 	return cmd
 }
 
-func runComment(app *App, tasks []string, comment string) error {
+func runComment(app *app.App, tasks []string, comment string) error {
 
-	refreshRequired, err := CheckAndRefreshCache(app, false)
+	refreshRequired, err := handlers.CheckAndRefreshCache(app, false)
 	if refreshRequired && err != nil {
 		return err
 	}
 
 	// Validate tasks names
-	invalidTasks, invalid := HasInvalidTasks(app, tasks)
+	invalidTasks, invalid := handlers.HasInvalidTasks(app, tasks)
 	if invalid {
 		for _, ivTask := range invalidTasks {
 			ui.Printfln("task '%s' cannot be found.", ivTask)

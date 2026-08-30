@@ -1,13 +1,15 @@
-package cli
+package work
 
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/handlers"
 	"github.com/spf13/cobra"
 )
 
-func newUnassignCmd(app *App) *cobra.Command {
+func newUnassignCmd(app *app.App) *cobra.Command {
 	var (
 		reopen  bool
 		message string
@@ -36,11 +38,11 @@ Use '-m' to comment on the work items on unassignment.`,
 }
 
 func runUnassignCmd(
-	app *App, taskKeys []string,
+	app *app.App, taskKeys []string,
 	reopen bool, comment string,
 ) error {
 
-	refreshRequired, err := CheckAndRefreshCache(app, false)
+	refreshRequired, err := handlers.CheckAndRefreshCache(app, false)
 	if refreshRequired && err != nil {
 		return err
 	}
@@ -53,18 +55,18 @@ func runUnassignCmd(
 	return processUnassignCmd(app, cacheItems, reopen, comment)
 }
 
-func processUnassignCmd(app *App, cacheItems []*config.CacheItem, reopen bool, comment string) error {
+func processUnassignCmd(app *app.App, cacheItems []*config.CacheItem, reopen bool, comment string) error {
 	if err := app.Client.UnassignWorkItems(app.Ctx, app.LocalContext, cacheItems); err != nil {
 		return err
 	}
 
 	if reopen {
-		if err := reopenCacheItems(app, cacheItems); err != nil {
+		if err := handlers.ReopenCacheItems(app, cacheItems); err != nil {
 			return err
 		}
 	}
 
-	CommentCacheItems(app, cacheItems, comment)
+	handlers.CommentCacheItems(app, cacheItems, comment)
 
 	app.State.RemoveActiveTasks(cacheItems)
 	if err := app.SaveState(); err != nil {
@@ -74,32 +76,9 @@ func processUnassignCmd(app *App, cacheItems []*config.CacheItem, reopen bool, c
 	return nil
 }
 
-func reopenCacheItems(app *App, cacheItems []*config.CacheItem) error {
-	groups, err := GroupTasksByTransition(app, cacheItems, "reopen")
-	if err != nil {
-		return err
-	}
-
-	for _, group := range groups {
-		if err := app.Client.TransitionWorkItems(
-			app.Ctx, app.LocalContext, group.items, group.ref,
-		); err != nil {
-			return fmt.Errorf(
-				"failed to move work items back to open state: %w", err,
-			)
-		}
-
-		for _, item := range group.items {
-			item.Status = group.ref.DisplayName
-		}
-	}
-
-	return nil
-}
-
 // ResolveUnassignTaskFocus resolves the given task keys to cache items,
 // ensuring they are currently active tasks.
-func ResolveUnassignTaskFocus(app *App, taskKeys []string) ([]*config.CacheItem, error) {
+func ResolveUnassignTaskFocus(app *app.App, taskKeys []string) ([]*config.CacheItem, error) {
 	if len(taskKeys) == 0 {
 		return nil, fmt.Errorf("no task keys provided: unassign requires at least one active task")
 	}

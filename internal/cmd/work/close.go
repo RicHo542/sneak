@@ -1,13 +1,15 @@
-package cli
+package work
 
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/handlers"
 	"github.com/spf13/cobra"
 )
 
-func newCloseCmd(app *App) *cobra.Command {
+func newCloseCmd(app *app.App) *cobra.Command {
 	var (
 		all     bool
 		message string
@@ -37,17 +39,17 @@ Use '-m' to comment on the work items.`,
 }
 
 func runCloseCmd(
-	app *App, taskKeys []string,
+	app *app.App, taskKeys []string,
 	all bool, comment string,
 ) error {
 
-	refreshRequired, err := CheckAndRefreshCache(app, false)
+	refreshRequired, err := handlers.CheckAndRefreshCache(app, false)
 	if refreshRequired && err != nil {
 		return err
 	}
 
 	// resolve and forward
-	cacheItems, err := ResolveCloseTaskFocus(app, taskKeys, all)
+	cacheItems, err := handlers.ResolveCloseTaskFocus(app, taskKeys, all)
 	if err != nil {
 		return err
 	}
@@ -55,13 +57,13 @@ func runCloseCmd(
 	return processCloseCmd(app, cacheItems, comment)
 }
 
-func processCloseCmd(app *App, cacheItems []*config.CacheItem, comment string) error {
+func processCloseCmd(app *app.App, cacheItems []*config.CacheItem, comment string) error {
 
-	if err := CloseCacheItems(app, cacheItems); err != nil {
+	if err := handlers.CloseCacheItems(app, cacheItems); err != nil {
 		return err
 	}
 
-	CommentCacheItems(app, cacheItems, comment)
+	handlers.CommentCacheItems(app, cacheItems, comment)
 
 	app.State.RemoveActiveTasks(cacheItems)
 	if err := app.SaveState(); err != nil {

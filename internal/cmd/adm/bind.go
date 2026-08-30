@@ -1,13 +1,15 @@
-package cli
+package adm
 
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/handlers"
 	"github.com/spf13/cobra"
 )
 
-func newBindCmd(app *App) *cobra.Command {
+func newBindCmd(app *app.App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bind",
 		Short: "Manage parent item bindings",
@@ -38,7 +40,7 @@ Sub-commands:
 	return cmd
 }
 
-func newBindListCmd(app *App) *cobra.Command {
+func newBindListCmd(app *app.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List parent item bindings",
@@ -53,7 +55,7 @@ func newBindListCmd(app *App) *cobra.Command {
 	}
 }
 
-func newBindAddCmd(app *App) *cobra.Command {
+func newBindAddCmd(app *app.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "add <ID>...",
 		Short: "Add parent item bindings",
@@ -67,7 +69,7 @@ func newBindAddCmd(app *App) *cobra.Command {
 	}
 }
 
-func newBindRemoveCmd(app *App) *cobra.Command {
+func newBindRemoveCmd(app *app.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove <ID>...",
 		Short: "Remove parent item bindings",
@@ -81,7 +83,7 @@ func newBindRemoveCmd(app *App) *cobra.Command {
 	}
 }
 
-func newBindSetCmd(app *App) *cobra.Command {
+func newBindSetCmd(app *app.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set <ID>...",
 		Short: "Replace all parent item bindings",
@@ -95,7 +97,7 @@ func newBindSetCmd(app *App) *cobra.Command {
 	}
 }
 
-func runBindList(app *App) {
+func runBindList(app *app.App) {
 	if len(app.LocalContext.Bindings) == 0 {
 		fmt.Println("No bindings set.")
 		return
@@ -109,7 +111,7 @@ func runBindList(app *App) {
 // mutateBindings transforms the current bindings (replace with a nil mutator),
 // persists the local context, and forces a cache refresh so the new scope is
 // reflected in subsequent commands.
-func mutateBindings(app *App, mutate func(values []string, args []string) []string, args []string) error {
+func mutateBindings(app *app.App, mutate func(values []string, args []string) []string, args []string) error {
 	if mutate != nil {
 		app.LocalContext.Bindings = mutate(app.LocalContext.Bindings, args)
 	} else {
@@ -123,7 +125,7 @@ func mutateBindings(app *App, mutate func(values []string, args []string) []stri
 		return fmt.Errorf("failed to persist bindings: %w", err)
 	}
 
-	if err := RefreshCache(app); err != nil {
+	if err := handlers.RefreshCache(app); err != nil {
 		return fmt.Errorf("failed to refresh cache after binding change: %w", err)
 	}
 

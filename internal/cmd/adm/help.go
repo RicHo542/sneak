@@ -1,6 +1,11 @@
-package cli
+package adm
 
 import "github.com/spf13/cobra"
+
+// SetHelpCommand configures the root command's help command.
+func SetHelpCommand(root *cobra.Command) {
+	root.SetHelpCommand(newHelpCmd())
+}
 
 func newHelpCmd() *cobra.Command {
 	return &cobra.Command{

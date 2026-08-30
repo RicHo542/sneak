@@ -1,10 +1,11 @@
-package cli
+package view
 
 import (
 	"fmt"
 
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
+	"github.com/richo542/sneak/internal/handlers"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -113,7 +114,7 @@ func findProjectRepositories() ([]projectInfo, error) {
 
 	projects := make([]projectInfo, 0, len(activeStates))
 	for _, s := range activeStates {
-		stateRepos, err := DiscoverGitRepos(s.Dir)
+		stateRepos, err := handlers.DiscoverGitRepos(s.Dir)
 		if err != nil {
 			return nil, err
 		}

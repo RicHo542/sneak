@@ -1,4 +1,4 @@
-package cli
+package adm
 
 import (
 	"bufio"

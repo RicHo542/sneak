@@ -1,11 +1,15 @@
 package cli
 
 import (
+	"github.com/richo542/sneak/internal/app"
+	"github.com/richo542/sneak/internal/cmd/adm"
+	"github.com/richo542/sneak/internal/cmd/view"
+	"github.com/richo542/sneak/internal/cmd/work"
 	"github.com/spf13/cobra"
 )
 
-func NewRootCmd(info BuildInfo) *cobra.Command {
-	app := &App{}
+func NewRootCmd(info app.BuildInfo) *cobra.Command {
+	appInst := &app.App{}
 
 	root := &cobra.Command{
 		Use:     "sneak",
@@ -17,28 +21,16 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 			case "version", "help", "config", "init", "sup":
 				return nil
 			}
-			return InitApp(cmd, app)
+			return app.InitApp(cmd, appInst)
 		},
 		SilenceUsage: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
 
-	root.SetHelpCommand(newHelpCmd())
-	root.AddCommand(
-		newVersionCmd(info),
-		newConfigCmd(),
-		newInitCmd(),
-		newListCmd(app),
-		newStartCmd(app),
-		newCommentCmd(app),
-		newCloseCmd(app),
-		newStatusCmd(app),
-		newDescribeCmd(app),
-		newOpenCmd(app),
-		newBindCmd(app),
-		newUnassignCmd(app),
-		newStandupCmd(),
-	)
+	adm.SetHelpCommand(root)
+	adm.Register(appInst, info, root)
+	view.Register(appInst, root)
+	work.Register(appInst, root)
 
 	return root
 }

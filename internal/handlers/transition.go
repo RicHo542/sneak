@@ -1,15 +1,23 @@
-package cli
+package handlers
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/ui"
 )
 
-func CommentCacheItems(app *App, cacheItems []*config.CacheItem, comment string) {
+// transitionGroup groups work items by the transition key that moves them
+// into their target state, so each group needs only one transition call.
+type transitionGroup struct {
+	ref   config.TransitionRef
+	items []*config.CacheItem
+}
+
+func CommentCacheItems(app *app.App, cacheItems []*config.CacheItem, comment string) {
 	comment = strings.TrimSpace(comment)
 	if comment != "" {
 		commentErr := app.Client.AddCommentToWorkItems(
@@ -22,7 +30,7 @@ func CommentCacheItems(app *App, cacheItems []*config.CacheItem, comment string)
 }
 
 func CloseCacheItems(
-	app *App, cacheItems []*config.CacheItem,
+	app *app.App, cacheItems []*config.CacheItem,
 ) error {
 	return transitionCacheItems(
 		app, cacheItems, "close", app.Client.TransitionWorkItems,
@@ -30,15 +38,24 @@ func CloseCacheItems(
 }
 
 func StartCacheItems(
-	app *App, cacheItems []*config.CacheItem,
+	app *app.App, cacheItems []*config.CacheItem,
 ) error {
 	return transitionCacheItems(
 		app, cacheItems, "start", app.Client.StartWorkItems,
 	)
 }
 
+// ReopenCacheItems moves work items back to the open (to-do) state.
+func ReopenCacheItems(
+	app *app.App, cacheItems []*config.CacheItem,
+) error {
+	return transitionCacheItems(
+		app, cacheItems, "reopen", app.Client.TransitionWorkItems,
+	)
+}
+
 func transitionCacheItems(
-	app *App, cacheItems []*config.CacheItem, action string,
+	app *app.App, cacheItems []*config.CacheItem, action string,
 	exec func(context.Context, *config.LocalContext, []*config.CacheItem, config.TransitionRef) error,
 ) error {
 	// Move tasks to a new transition state (in progress / closed)
@@ -71,7 +88,7 @@ func transitionCacheItems(
 }
 
 func GroupTasksByTransition(
-	app *App, tasks []*config.CacheItem, action string,
+	app *app.App, tasks []*config.CacheItem, action string,
 ) (map[string]transitionGroup, error) {
 	groups := make(map[string]transitionGroup)
 	for _, t := range tasks {
@@ -98,7 +115,7 @@ func GroupTasksByTransition(
 }
 
 func ResolveTransitionForTask(
-	app *App, task *config.CacheItem, action string, attempt int,
+	app *app.App, task *config.CacheItem, action string, attempt int,
 ) (*config.WorkflowMap, error) {
 
 	workflow, err := app.LocalContext.GetWorkflowByType(task.Type)

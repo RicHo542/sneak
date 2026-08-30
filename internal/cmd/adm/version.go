@@ -1,12 +1,13 @@
-package cli
+package adm
 
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func newVersionCmd(info BuildInfo) *cobra.Command {
+func newVersionCmd(info app.BuildInfo) *cobra.Command {
 	var short bool
 
 	cmd := &cobra.Command{

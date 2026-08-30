@@ -1,13 +1,15 @@
-package cli
+package work
 
 import (
 	"fmt"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
+	"github.com/richo542/sneak/internal/handlers"
 	"github.com/spf13/cobra"
 )
 
-func newShipCmd(app *App) *cobra.Command {
+func newShipCmd(app *app.App) *cobra.Command {
 	var (
 		all     bool
 		message string
@@ -38,16 +40,16 @@ Use '-m' to comment on the work item.`,
 }
 
 func runShipCommand(
-	app *App, tasks []string,
+	app *app.App, tasks []string,
 	all bool, comment string,
 ) error {
 
-	needsRefresh, err := CheckAndRefreshCache(app, false)
+	needsRefresh, err := handlers.CheckAndRefreshCache(app, false)
 	if needsRefresh && err != nil {
 		return err
 	}
 
-	cacheItems, err := ResolveShipTaskFocus(app, tasks, all)
+	cacheItems, err := handlers.ResolveShipTaskFocus(app, tasks, all)
 	if err != nil {
 		return err
 	}
@@ -69,9 +71,9 @@ func runShipCommand(
 	return nil
 }
 
-func processShipCommand(app *App, cacheItems []*config.CacheItem, comment string) error {
+func processShipCommand(app *app.App, cacheItems []*config.CacheItem, comment string) error {
 
-	if err := CloseCacheItems(app, cacheItems); err != nil {
+	if err := handlers.CloseCacheItems(app, cacheItems); err != nil {
 		return err
 	}
 

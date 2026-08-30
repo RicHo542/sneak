@@ -1,14 +1,15 @@
-package cli
+package handlers
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/client/objects"
 	"github.com/richo542/sneak/internal/config"
 )
 
-func CheckAndRefreshCache(app *App, forceRefresh bool) (bool, error) {
+func CheckAndRefreshCache(app *app.App, forceRefresh bool) (bool, error) {
 	state := app.State
 	bindingsChanged := !state.Cache.MatchesBindings(app.LocalContext.Bindings)
 	needsFetch := forceRefresh || bindingsChanged || !state.Cache.IsFresh()
@@ -22,7 +23,7 @@ func CheckAndRefreshCache(app *App, forceRefresh bool) (bool, error) {
 	return needsFetch, nil
 }
 
-func RefreshCache(app *App) error {
+func RefreshCache(app *app.App) error {
 	fmt.Println("Fetching work items...")
 	state := app.State
 

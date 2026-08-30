@@ -1,23 +1,28 @@
-package cli
+package work
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
+	"github.com/richo542/sneak/internal/handlers"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-// transitionGroup groups work items by the transition key that moves them
-// into their target state, so each group needs only one transition call.
-type transitionGroup struct {
-	ref   config.TransitionRef
-	items []*config.CacheItem
+func Register(appInst *app.App, root *cobra.Command) {
+	root.AddCommand(
+		newStartCmd(appInst),
+		newCloseCmd(appInst),
+		newShipCmd(appInst),
+		newUnassignCmd(appInst),
+		newCommentCmd(appInst),
+	)
 }
 
-func newStartCmd(app *App) *cobra.Command {
+func newStartCmd(app *app.App) *cobra.Command {
 	var (
 		createBranch bool
 		message      string
@@ -47,17 +52,17 @@ Use '-m' to comment on the work item.`,
 }
 
 func runStartCommand(
-	app *App, tasks []string,
+	app *app.App, tasks []string,
 	createBranch bool, comment string,
 ) error {
 
 	// Check Cache expiry
-	refreshRequired, err := CheckAndRefreshCache(app, false)
+	refreshRequired, err := handlers.CheckAndRefreshCache(app, false)
 	if refreshRequired && err != nil {
 		return err
 	}
 
-	cachedTasks, err := ResolveStartTaskFocus(app, tasks, false)
+	cachedTasks, err := handlers.ResolveStartTaskFocus(app, tasks, false)
 	if err != nil {
 		return err
 	}
@@ -73,11 +78,11 @@ func runStartCommand(
 }
 
 func processStartCommand(
-	app *App, cachedTasks []*config.CacheItem, createBranch bool,
+	app *app.App, cachedTasks []*config.CacheItem, createBranch bool,
 	comment string,
 ) error {
 
-	if err := StartCacheItems(app, cachedTasks); err != nil {
+	if err := handlers.StartCacheItems(app, cachedTasks); err != nil {
 		return err
 	}
 
@@ -93,7 +98,7 @@ func processStartCommand(
 
 	// Do not fail if comments have not been added.
 	// User is informed, but important transactions succeeded.
-	CommentCacheItems(app, cachedTasks, comment)
+	handlers.CommentCacheItems(app, cachedTasks, comment)
 
 	app.State.AddActiveTasks(cachedTasks, true, branchName)
 	if err := app.SaveState(); err != nil {
