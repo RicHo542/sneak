@@ -34,6 +34,9 @@ func NewRootCmd(info BuildInfo) *cobra.Command {
 		newCloseCmd(app),
 		newStatusCmd(app),
 		newDescribeCmd(app),
+		newOpenCmd(app),
+		newBindCmd(app),
+		newUnassignCmd(app),
 		newStandupCmd(),
 	)
 

@@ -250,10 +250,21 @@ func (c *AzureProviderClient) getWorkflowForType(
 		return config.WorkflowMap{}, err
 	}
 
+	return classifyAzureStates(states), nil
+}
+
+// classifyAzureStates resolves the open/start/done refs from the static state
+// definitions of a work item type, keying off the language-independent state
+// categories (Proposed = backlog, InProgress = active, Completed/Resolved =
+// done).
+func classifyAzureStates(states []azureWorkItemState) config.WorkflowMap {
 	var wm config.WorkflowMap
 	for _, s := range states {
 		if s.Category == "InProgress" && wm.Start.TransitionKey == "" {
 			wm.Start = config.TransitionRef{TransitionKey: s.Name, DisplayName: s.Name}
+		}
+		if s.Category == "Proposed" && wm.Open.TransitionKey == "" {
+			wm.Open = config.TransitionRef{TransitionKey: s.Name, DisplayName: s.Name}
 		}
 		if s.Category == "Completed" && wm.Done.TransitionKey == "" {
 			wm.Done = config.TransitionRef{TransitionKey: s.Name, DisplayName: s.Name}
@@ -270,7 +281,7 @@ func (c *AzureProviderClient) getWorkflowForType(
 		}
 	}
 
-	return wm, nil
+	return wm
 }
 
 // DiscoverWorkflowForItem resolves start/done states for a single work item.

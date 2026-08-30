@@ -22,6 +22,7 @@ type ProviderClient interface {
 	StartWorkItems(context.Context, *config.LocalContext, []*config.CacheItem, config.TransitionRef) error
 	AddCommentToWorkItems(context.Context, *config.LocalContext, []*config.CacheItem, string) error
 	AssignWorkItems(context.Context, *config.LocalContext, []*config.CacheItem) error
+	UnassignWorkItems(context.Context, *config.LocalContext, []*config.CacheItem) error
 	DescribeWorkItem(context.Context, string) (*objects.WorkItemDetail, error)
 }
 

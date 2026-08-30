@@ -200,24 +200,7 @@ func (c *JiraProviderClient) discoverWorkflowForIssues(
 			continue
 		}
 
-		for _, tr := range transitions {
-			switch tr.To.StatusCategory.Key {
-			case "indeterminate":
-				if wm.Start.TransitionKey == "" {
-					wm.Start = config.TransitionRef{
-						TransitionKey: tr.ID,
-						DisplayName:   tr.To.Name,
-					}
-				}
-			case "done":
-				if wm.Done.TransitionKey == "" {
-					wm.Done = config.TransitionRef{
-						TransitionKey: tr.ID,
-						DisplayName:   tr.To.Name,
-					}
-				}
-			}
-		}
+		wm = classifyTransitions(transitions)
 
 		if wm.Start.TransitionKey != "" && wm.Done.TransitionKey != "" {
 			break
@@ -234,17 +217,39 @@ func (c *JiraProviderClient) DiscoverWorkflowForItem(
 	ctx context.Context, task *config.CacheItem,
 ) (config.WorkflowMap, error) {
 
-	var wm config.WorkflowMap
 	transitions, err := c.getTransitions(ctx, task.Key)
 	if err != nil {
-		return wm, err
+		return config.WorkflowMap{}, err
 	}
+
+	return classifyTransitions(transitions), nil
+}
+
+// classifyTransitions resolves the open/start/done refs from the available
+// transitions for a single issue. Jira status categories map as follows: the
+// "new" category is the backlog ("to do") Open state, "indeterminate" is the
+// active Start state, and "done" is Done. A name-based fallback is kept for
+// custom workflows that place the backlog state under a different category.
+func classifyTransitions(transitions []jiraTransition) config.WorkflowMap {
+	var wm config.WorkflowMap
 
 	for _, tr := range transitions {
 		switch tr.To.StatusCategory.Key {
 		case "indeterminate":
 			if wm.Start.TransitionKey == "" {
 				wm.Start = config.TransitionRef{
+					TransitionKey: tr.ID,
+					DisplayName:   tr.To.Name,
+				}
+			} else if wm.Open.TransitionKey == "" && jiraBacklogStatusName(tr.To.Name) {
+				wm.Open = config.TransitionRef{
+					TransitionKey: tr.ID,
+					DisplayName:   tr.To.Name,
+				}
+			}
+		case "new":
+			if wm.Open.TransitionKey == "" {
+				wm.Open = config.TransitionRef{
 					TransitionKey: tr.ID,
 					DisplayName:   tr.To.Name,
 				}
@@ -257,13 +262,36 @@ func (c *JiraProviderClient) DiscoverWorkflowForItem(
 				}
 			}
 		}
-
-		if wm.Start.TransitionKey != "" && wm.Done.TransitionKey != "" {
-			break
-		}
 	}
 
-	return wm, nil
+	// Custom workflows sometimes put the backlog state under the
+	// "indeterminate" category with a name we recognize. If Open is still
+	// empty, fall back to any indeterminate transition whose target name looks
+	// like a backlog status.
+	if wm.Open.TransitionKey == "" {
+		for _, tr := range transitions {
+			if tr.To.StatusCategory.Key == "indeterminate" && jiraBacklogStatusName(tr.To.Name) {
+				wm.Open = config.TransitionRef{
+					TransitionKey: tr.ID,
+					DisplayName:   tr.To.Name,
+				}
+				break
+			}
+		}
+	}
+	return wm
+}
+
+// jiraBacklogStatusName reports whether the given status name refers to an
+// item sitting in the backlog ("to do") rather than being actively worked on.
+// These names are matched case-insensitively so discovery reliably separates
+// the Open state from the Start (in-progress) state.
+func jiraBacklogStatusName(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "to do", "todo", "open", "backlog", "new", "not started", "ready for dev":
+		return true
+	}
+	return false
 }
 
 // groupByPrevalentTypes groups issues by issue type and returns the type names

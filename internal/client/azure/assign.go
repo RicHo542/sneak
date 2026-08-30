@@ -80,3 +80,72 @@ func (c *AzureProviderClient) AssignWorkItems(
 
 	return nil
 }
+
+// UnassignWorkItems clears the assignee of the given work items. Azure treats
+// assignment as a field update, so an empty AssignedTo value removes it.
+func (c *AzureProviderClient) UnassignWorkItems(
+	ctx context.Context, lctx *config.LocalContext,
+	items []*config.CacheItem,
+) error {
+
+	payload, err := json.Marshal([]azureWorkItemPatch{{
+		Op:    "add",
+		Path:  "/fields/System.AssignedTo",
+		Value: "",
+	}})
+	if err != nil {
+		return fmt.Errorf("bad request body: %w", err)
+	}
+
+	var fails []string
+	for _, item := range items {
+		id, err := azureWorkItemID(item.Key)
+		if err != nil {
+			fails = append(fails, fmt.Sprintf("%s: %v", item.Key, err))
+			continue
+		}
+
+		apiURL := c.Endpoints.assignEndpoint(id)
+
+		req, err := http.NewRequestWithContext(ctx, "PATCH", apiURL, bytes.NewReader(payload))
+		if err != nil {
+			fails = append(fails, fmt.Sprintf("%s: %v", item.Key, err))
+			continue
+		}
+		c.SetAuthHeader(req)
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/json-patch+json")
+
+		resp, err := c.Client.Do(req)
+		if err != nil {
+			fails = append(fails, fmt.Sprintf("%s: %v", item.Key, err))
+			continue
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			fails = append(fails, fmt.Sprintf("%s: %v", item.Key, err))
+			continue
+		}
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			fails = append(fails, fmt.Sprintf(
+				"%s: HTTP %d: %s", item.Key, resp.StatusCode,
+				strings.TrimSpace(string(respBody)),
+			))
+		}
+
+		// Keep cache up to date
+		item.Assignee = ""
+	}
+
+	if len(fails) > 0 {
+		return fmt.Errorf(
+			"failed to unassign %d of %d work items:\n  %s",
+			len(fails), len(items), strings.Join(fails, "\n  "),
+		)
+	}
+
+	return nil
+}

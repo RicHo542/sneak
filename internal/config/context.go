@@ -45,10 +45,13 @@ type TransitionRef struct {
 	DisplayName   string `yaml:"display_name,omitempty"`
 }
 
-// WorkflowMap is the two-hop workflow (start, done) for a work item type.
+// WorkflowMap is the three-hop workflow (open, start, done) for a work item
+// type. Open is the backlog ("to do") state used when returning an item to the
+// board; it is optional so existing configs remain valid.
 type WorkflowMap struct {
 	Start TransitionRef `yaml:"start"`
 	Done  TransitionRef `yaml:"done"`
+	Open  TransitionRef `yaml:"open,omitempty"`
 }
 
 // GenerateProjectID returns a random cache identifier used for persisting the local

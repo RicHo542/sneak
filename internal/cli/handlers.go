@@ -81,8 +81,11 @@ func GroupTasksByTransition(
 		}
 
 		ref := workflow.Start
-		if action == "close" {
+		switch action {
+		case "close":
 			ref = workflow.Done
+		case "reopen":
+			ref = workflow.Open
 		}
 		group := groups[ref.TransitionKey]
 		if group.ref.TransitionKey == "" {
@@ -102,9 +105,13 @@ func ResolveTransitionForTask(
 
 	var focusedKey string
 	if workflow != nil {
-		focusedKey = workflow.Start.TransitionKey
-		if action == "close" {
+		switch action {
+		case "close":
 			focusedKey = workflow.Done.TransitionKey
+		case "reopen":
+			focusedKey = workflow.Open.TransitionKey
+		default:
+			focusedKey = workflow.Start.TransitionKey
 		}
 	}
 
