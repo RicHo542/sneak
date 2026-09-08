@@ -226,6 +226,20 @@ func resolveAll(instance *app.App, focus TaskFocus) ([]*config.CacheItem, []*tod
 	return cacheItems, todoItems, nil
 }
 
+// ResolveCommentTargets splits keys into provider and todo targets, applying
+// the provider cache refresh gate. Provider items are only resolved within a
+// project scope; todo refs resolve against the current scope bucket.
+func ResolveCommentTargets(instance *app.App, keys []string) ([]*config.CacheItem, []*todos.Todo, error) {
+	if instance.InProjectScope() && ContainsProviderKeys(keys) {
+		refreshRequired, err := CheckAndRefreshCache(instance, false)
+		if refreshRequired && err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return resolveTaskKeys(instance, keys)
+}
+
 func ResolveShipTaskFocus(app *app.App, taskKeys []string, all bool) ([]*config.CacheItem, error) {
 	return resolveTaskFocus(app, taskKeys, all, app.State.GetActiveCacheItems)
 }

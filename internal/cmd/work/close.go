@@ -63,7 +63,7 @@ func runCloseCmd(
 	}
 
 	if len(todoItems) > 0 {
-		todoCloseErr = closeTodos(app, todoItems)
+		todoCloseErr = closeTodos(app, todoItems, comment)
 	}
 
 	if providerCloseErr != nil || todoCloseErr != nil {
@@ -89,12 +89,15 @@ func closeProviderItems(app *app.App, cacheItems []*config.CacheItem, comment st
 	return nil
 }
 
-func closeTodos(instance *app.App, todoItems []*todos.Todo) error {
+func closeTodos(instance *app.App, todoItems []*todos.Todo, comment string) error {
 	if err := instance.TodoStore.Close(todoItems); err != nil {
 		return fmt.Errorf("failed to close todos: %w", err)
 	}
 	for _, item := range todoItems {
 		ui.Printfln("closed todo: '%s'", item.Key)
+	}
+	if err := instance.TodoStore.AddNotes(todoItems, comment); err != nil {
+		ui.Printfln("failed to add note: %v", err)
 	}
 	return nil
 }

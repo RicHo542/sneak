@@ -232,6 +232,20 @@ func (s *TodoStore) Start(items []*Todo) error {
 	return s.Save(false)
 }
 
+// AddNotes appends a timestamped note to each item's note log.
+func (s *TodoStore) AddNotes(items []*Todo, text string) error {
+	text = strings.TrimSpace(text)
+	if text == "" || len(items) == 0 {
+		return nil
+	}
+
+	now := time.Now()
+	for _, item := range items {
+		item.Notes = append(item.Notes, Note{At: &now, Text: text})
+	}
+	return s.Save(false)
+}
+
 /*
 func (s *TodoStore) All() []*Todo
 func (s *TodoStore) Reopen(projectId string, ref string) error

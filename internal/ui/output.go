@@ -176,6 +176,53 @@ func PrintWorkItemDetail(detail *objects.WorkItemDetail) {
 	}
 }
 
+// PrintTodoDetail renders the full detail view of a local todo, used by
+// 'sneak describe' for sn: refs.
+func PrintTodoDetail(item *todos.Todo) {
+	fmt.Printf("%s: %s\n", item.Key, item.Title)
+	fmt.Println()
+
+	fmt.Printf("Status:   %s\n", item.Status)
+	fmt.Printf("Created:  %s\n", item.CreatedAt.Format("2006-01-02 15:04"))
+	if item.StartedAt != nil {
+		fmt.Printf("Started:  %s\n", item.StartedAt.Format("2006-01-02 15:04"))
+	}
+	if item.ClosedAt != nil {
+		fmt.Printf("Closed:   %s\n", item.ClosedAt.Format("2006-01-02 15:04"))
+	}
+	if item.Pin {
+		fmt.Println("Pinned:   yes")
+	}
+	if len(item.Labels) > 0 {
+		fmt.Printf("Labels:   %s\n", strings.Join(item.Labels, ", "))
+	}
+	fmt.Println()
+
+	fmt.Printf("Notes (%d):\n", len(item.Notes))
+	if len(item.Notes) == 0 {
+		fmt.Println("  (none)")
+		return
+	}
+	for _, n := range item.Notes {
+		at := ""
+		if n.At != nil {
+			at = n.At.Format("2006-01-02 15:04")
+		}
+		fmt.Printf("  [%s] %s\n", at, n.Text)
+	}
+	fmt.Println()
+
+	fmt.Println("Description:")
+	if strings.TrimSpace(item.Description) == "" {
+		fmt.Println("  (none)")
+	} else {
+		for _, line := range strings.Split(item.Description, "\n") {
+			fmt.Printf("  %s\n", line)
+		}
+	}
+
+}
+
 // RepoSummary is a standup summary entry for a single repository.
 type RepoSummary struct {
 	Path    string

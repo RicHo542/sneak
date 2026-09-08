@@ -80,7 +80,7 @@ func runStartCommand(
 	}
 
 	if len(todoItems) > 0 {
-		todoStartErr = startTodos(app, todoItems)
+		todoStartErr = startTodos(app, todoItems, comment)
 	}
 
 	if providerStartErr != nil || todoStartErr != nil {
@@ -91,12 +91,15 @@ func runStartCommand(
 	return nil
 }
 
-func startTodos(instance *app.App, todoItems []*todos.Todo) error {
+func startTodos(instance *app.App, todoItems []*todos.Todo, comment string) error {
 	if err := instance.TodoStore.Start(todoItems); err != nil {
 		return fmt.Errorf("failed to start todos: %w", err)
 	}
 	for _, item := range todoItems {
 		ui.Printfln("started todo: '%s'", item.Key)
+	}
+	if err := instance.TodoStore.AddNotes(todoItems, comment); err != nil {
+		ui.Printfln("failed to add note: %v", err)
 	}
 	return nil
 }
