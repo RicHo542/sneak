@@ -29,7 +29,7 @@ type ActiveStates struct {
 	Dir string
 }
 
-func stateDir() (string, error) {
+func StateDir() (string, error) {
 	base, err := SneakConfigDir()
 	if err != nil {
 		return "", err
@@ -37,9 +37,22 @@ func stateDir() (string, error) {
 	return filepath.Join(base, "state"), nil
 }
 
+func EnsureStateDir() error {
+	sd, err := StateDir()
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(sd, 0700); err != nil {
+		return fmt.Errorf("failed to create %s: %w", sd, err)
+	}
+
+	return nil
+}
+
 // stateFilePath resolves the state file location for a given project
 func stateFilePath(projectID string) (string, error) {
-	sd, err := stateDir()
+	sd, err := StateDir()
 	if err != nil {
 		return "", err
 	}
@@ -69,12 +82,9 @@ func LoadState(projectID string) (*State, error) {
 }
 
 func SaveState(projectID string, state *State) error {
-	sd, err := stateDir()
+	err := EnsureStateDir()
 	if err != nil {
 		return err
-	}
-	if err := os.MkdirAll(sd, 0700); err != nil {
-		return fmt.Errorf("failed to create %s: %w", sd, err)
 	}
 
 	data, err := json.MarshalIndent(state, "", "  ")
@@ -108,7 +118,7 @@ func RemoveState(projectID string) error {
 
 // DiscoverStates returns all currently tracked active states.
 func DiscoverStates() ([]ActiveStates, error) {
-	sd, err := stateDir()
+	sd, err := StateDir()
 	if err != nil {
 		return nil, err
 	}

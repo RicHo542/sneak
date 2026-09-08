@@ -1,6 +1,7 @@
 # Sneak
 .sneak/
 design/
+tmp/
 
 .DS_Store
 

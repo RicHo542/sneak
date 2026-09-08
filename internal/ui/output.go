@@ -9,6 +9,7 @@ import (
 	"github.com/richo542/sneak/internal/client/objects"
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
+	"github.com/richo542/sneak/internal/todos"
 	"golang.org/x/term"
 )
 
@@ -19,6 +20,7 @@ const (
 	ColorGray  = "\033[38;2;126;140;155m"
 	ColorReset = "\033[0m"
 	ColorRed   = "\033[38;2;255;100;100m"
+	Dot        = "●"
 )
 
 // useColor reports whether ANSI colors should be emitted: only when output is an
@@ -72,14 +74,14 @@ func Printfln(format string, a ...any) {
 	fmt.Printf(format+"\n", a...)
 }
 
-func PrintTableOfItems(items []config.CacheItem) {
+func PrintTableOfProviderItems(items []config.CacheItem) {
 	fmt.Printf("%-12s  %-10s  %-12s  %-16s  %s\n", "KEY", "ASSIGNED", "TYPE", "STATUS", "SUMMARY")
 	fmt.Println(strings.Repeat("-", 100))
 
 	for _, item := range items {
 		assignFlag := ""
 		if item.Assignee != "" {
-			assignFlag = "x"
+			assignFlag = Dot
 		}
 		summary := item.Summary
 		if len(summary) > 40 {
@@ -87,6 +89,21 @@ func PrintTableOfItems(items []config.CacheItem) {
 		}
 		fmt.Printf("%-12s  %-10s  %-12s  %-16s  %s\n", item.Key, assignFlag, item.Type, item.Status, summary)
 	}
+}
+
+func PrintTableOfTodos(todos []*todos.Todo) {
+	fmt.Printf("%-8s  %-4s  %-6s  %-10s  %s\n", "KEY", "PIN", "STATUS", "AGE", "TITLE")
+	fmt.Println(strings.Repeat("-", 100))
+
+	for _, item := range todos {
+		age := time.Since(item.CreatedAt).Truncate(time.Minute)
+		pinMarker := ""
+		if item.Pin {
+			pinMarker = Dot
+		}
+		fmt.Printf("%-8s  %-4s  %-6s  %-10s  %s\n", item.Key, pinMarker, item.Status, age, item.Title)
+	}
+	fmt.Println()
 }
 
 func PrintActiveTaskTable(items []config.ActiveTask) {

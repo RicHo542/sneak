@@ -1,6 +1,7 @@
 package work
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/git"
 	"github.com/richo542/sneak/internal/handlers"
+	"github.com/richo542/sneak/internal/todos"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -19,10 +21,11 @@ func Register(appInst *app.App, root *cobra.Command) {
 		newShipCmd(appInst),
 		newUnassignCmd(appInst),
 		newCommentCmd(appInst),
+		newCreateCmd(appInst),
 	)
 }
 
-func newStartCmd(app *app.App) *cobra.Command {
+func newStartCmd(instance *app.App) *cobra.Command {
 	var (
 		createBranch bool
 		message      string
@@ -37,11 +40,11 @@ Use '-b' to also create a new feature branch to directly create.
 Use '-m' to comment on the work item.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			if app.LocalContext == nil {
-				return fmt.Errorf("not initialized: run 'sneak init' first")
+			if instance.OutsideProjectScope() && handlers.ContainsProviderKeys(args) {
+				return fmt.Errorf("using 'start' outside project directories is limited to global todo items.")
 			}
 
-			return runStartCommand(app, args, createBranch, message)
+			return runStartCommand(instance, args, createBranch, message)
 		},
 	}
 
@@ -56,28 +59,49 @@ func runStartCommand(
 	createBranch bool, comment string,
 ) error {
 
-	// Check Cache expiry
-	refreshRequired, err := handlers.CheckAndRefreshCache(app, false)
-	if refreshRequired && err != nil {
-		return err
-	}
-
-	cachedTasks, err := handlers.ResolveStartTaskFocus(app, tasks, false)
+	providerItems, todoItems, err := handlers.ResolveTaskSelection(
+		app, handlers.FocusStart, tasks, false,
+	)
 	if err != nil {
 		return err
 	}
 
-	if err := processStartCommand(
-		app, cachedTasks, createBranch, comment,
-	); err != nil {
-		return err
+	if createBranch && len(providerItems) == 0 {
+		return fmt.Errorf("'--branch' can only be used with provider work items.")
+	}
+
+	var providerStartErr error
+	var todoStartErr error
+
+	if len(providerItems) > 0 {
+		providerStartErr = processProviderStart(
+			app, providerItems, createBranch, comment,
+		)
+	}
+
+	if len(todoItems) > 0 {
+		todoStartErr = startTodos(app, todoItems)
+	}
+
+	if providerStartErr != nil || todoStartErr != nil {
+		return errors.Join(providerStartErr, todoStartErr)
 	}
 
 	ui.Printfln("Started workitems: %s", strings.Join(tasks, ", "))
 	return nil
 }
 
-func processStartCommand(
+func startTodos(instance *app.App, todoItems []*todos.Todo) error {
+	if err := instance.TodoStore.Start(todoItems); err != nil {
+		return fmt.Errorf("failed to start todos: %w", err)
+	}
+	for _, item := range todoItems {
+		ui.Printfln("started todo: '%s'", item.Key)
+	}
+	return nil
+}
+
+func processProviderStart(
 	app *app.App, cachedTasks []*config.CacheItem, createBranch bool,
 	comment string,
 ) error {

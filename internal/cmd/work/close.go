@@ -1,15 +1,18 @@
 package work
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/richo542/sneak/internal/app"
 	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/handlers"
+	"github.com/richo542/sneak/internal/todos"
+	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-func newCloseCmd(app *app.App) *cobra.Command {
+func newCloseCmd(instance *app.App) *cobra.Command {
 	var (
 		all     bool
 		message string
@@ -24,11 +27,15 @@ Use '-a' to close all active tasks, managed by sneak.
 Use '-m' to comment on the work items.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			if app.LocalContext == nil {
-				return fmt.Errorf("not initialized: run 'sneak init' first")
+			if all && len(args) > 0 {
+				return fmt.Errorf("'--all' can only be used without specifying task ids.")
 			}
 
-			return runCloseCmd(app, args, all, message)
+			if instance.OutsideProjectScope() && handlers.ContainsProviderKeys(args) {
+				return fmt.Errorf("using 'close' outside project directories is limited to global todo items.")
+			}
+
+			return runCloseCmd(instance, args, all, message)
 		},
 	}
 
@@ -43,21 +50,30 @@ func runCloseCmd(
 	all bool, comment string,
 ) error {
 
-	refreshRequired, err := handlers.CheckAndRefreshCache(app, false)
-	if refreshRequired && err != nil {
-		return err
-	}
-
-	// resolve and forward
-	cacheItems, err := handlers.ResolveCloseTaskFocus(app, taskKeys, all)
+	providerItems, todoItems, err := handlers.ResolveTaskSelection(app, handlers.FocusClose, taskKeys, all)
 	if err != nil {
 		return err
 	}
 
-	return processCloseCmd(app, cacheItems, comment)
+	var providerCloseErr error
+	var todoCloseErr error
+
+	if len(providerItems) > 0 {
+		providerCloseErr = closeProviderItems(app, providerItems, comment)
+	}
+
+	if len(todoItems) > 0 {
+		todoCloseErr = closeTodos(app, todoItems)
+	}
+
+	if providerCloseErr != nil || todoCloseErr != nil {
+		return errors.Join(providerCloseErr, todoCloseErr)
+	}
+
+	return nil
 }
 
-func processCloseCmd(app *app.App, cacheItems []*config.CacheItem, comment string) error {
+func closeProviderItems(app *app.App, cacheItems []*config.CacheItem, comment string) error {
 
 	if err := handlers.CloseCacheItems(app, cacheItems); err != nil {
 		return err
@@ -70,5 +86,15 @@ func processCloseCmd(app *app.App, cacheItems []*config.CacheItem, comment strin
 		fmt.Println("Failed to save local state")
 	}
 
+	return nil
+}
+
+func closeTodos(instance *app.App, todoItems []*todos.Todo) error {
+	if err := instance.TodoStore.Close(todoItems); err != nil {
+		return fmt.Errorf("failed to close todos: %w", err)
+	}
+	for _, item := range todoItems {
+		ui.Printfln("closed todo: '%s'", item.Key)
+	}
 	return nil
 }

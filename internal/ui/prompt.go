@@ -100,7 +100,7 @@ func ReadSecret() (string, error) {
 	return strings.TrimSpace(strings.TrimRight(line, "\r\n")), nil
 }
 
-func InteractiveSelectItem(items []*config.CacheItem) ([]*config.CacheItem, error) {
+func InteractiveSelectCacheItem(items []*config.CacheItem) ([]*config.CacheItem, error) {
 	var selection []*config.CacheItem
 
 	var options []huh.Option[*config.CacheItem]
@@ -127,5 +127,30 @@ func InteractiveSelectItem(items []*config.CacheItem) ([]*config.CacheItem, erro
 		return nil, err
 	}
 
+	return selection, nil
+}
+
+func InteractiveSelectItem(items []*SelectItem) ([]*SelectItem, error) {
+	var selection []*SelectItem
+
+	options := make([]huh.Option[*SelectItem], 0, len(items))
+	for _, item := range items {
+		options = append(options, huh.NewOption(item.Label, item))
+	}
+	selectionHeight := min(12, len(options)+1)
+
+	selectBox := NewThemedAppForm(
+		huh.NewGroup(
+			huh.NewMultiSelect[*SelectItem]().
+				Options(options...).
+				Title("Select items:").
+				Height(selectionHeight).
+				Value(&selection),
+		),
+	).WithShowHelp(true)
+
+	if err := selectBox.Run(); err != nil {
+		return nil, err
+	}
 	return selection, nil
 }

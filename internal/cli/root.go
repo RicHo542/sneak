@@ -13,7 +13,7 @@ func NewRootCmd(info app.BuildInfo) *cobra.Command {
 
 	root := &cobra.Command{
 		Use:     "sneak",
-		Short:   "A CLI to easily close work task without overhead",
+		Short:   "A CLI to reduce daily, administrative overhead for remote task management",
 		Version: info.Version,
 		// Runs before any subcommand
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
