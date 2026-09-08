@@ -23,7 +23,8 @@ func NewRootCmd(info app.BuildInfo) *cobra.Command {
 			}
 			return app.InitApp(cmd, appInst)
 		},
-		SilenceUsage: true,
+		SilenceErrors: true,
+		SilenceUsage:  true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
 
