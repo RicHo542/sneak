@@ -22,6 +22,7 @@ func Register(appInst *app.App, root *cobra.Command) {
 		newUnassignCmd(appInst),
 		newCommentCmd(appInst),
 		newCreateCmd(appInst),
+		newNoteCmd(appInst),
 	)
 }
 

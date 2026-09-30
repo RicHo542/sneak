@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type Note struct {
+type Comment struct {
 	At   *time.Time `json:"at"`
 	Text string     `json:"text"`
 }
@@ -24,7 +24,7 @@ type Todo struct {
 	Description string     `json:"description"`
 	Status      string     `json:"status"`
 	Labels      []string   `json:"labels"`
-	Notes       []Note     `json:"notes"`
+	Comments    []Comment  `json:"notes"`
 	CreatedAt   time.Time  `json:"created_at"`
 	StartedAt   *time.Time `json:"started_at,omitempty"`
 	ClosedAt    *time.Time `json:"closed_at,omitempty"`
@@ -153,6 +153,36 @@ func (s *TodoStore) GetByStatus(projectId string, status []string) ([]*Todo, err
 	return filtered, nil
 }
 
+// TodoBucket groups todos that share a single scope key.
+type TodoBucket struct {
+	Scope string
+	Items []*Todo
+}
+
+// GetAllByStatus collects todos across every scope that match any of the given
+// statuses, returned grouped by scope. Empty buckets are omitted.
+func (s *TodoStore) GetAllByStatus(statuses []string) []TodoBucket {
+	set := make(map[string]struct{}, len(statuses))
+	for _, st := range statuses {
+		set[strings.ToLower(st)] = struct{}{}
+	}
+
+	var buckets []TodoBucket
+	for scope, items := range s.Items {
+		var filtered []*Todo
+		for i, item := range items {
+			if _, ok := set[strings.ToLower(item.Status)]; ok {
+				filtered = append(filtered, items[i])
+			}
+		}
+		if len(filtered) > 0 {
+			buckets = append(buckets, TodoBucket{Scope: scope, Items: filtered})
+		}
+	}
+
+	return buckets
+}
+
 func (s *TodoStore) Create(projectId string, title string, labels []string, pin bool) (string, error) {
 
 	if s.Items == nil {
@@ -241,8 +271,19 @@ func (s *TodoStore) AddNotes(items []*Todo, text string) error {
 
 	now := time.Now()
 	for _, item := range items {
-		item.Notes = append(item.Notes, Note{At: &now, Text: text})
+		item.Comments = append(item.Comments, Comment{At: &now, Text: text})
 	}
+	return s.Save(false)
+}
+
+// UpdateDescription overwrites the Description field of a single todo,
+// resolved by projectId and ref.
+func (s *TodoStore) UpdateDescription(projectId string, ref string, doc string) error {
+	item, err := s.GetByRef(projectId, ref)
+	if err != nil {
+		return err
+	}
+	item.Description = doc
 	return s.Save(false)
 }
 

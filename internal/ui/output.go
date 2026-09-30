@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -72,6 +73,10 @@ func PrintBanner() {
 
 func Printfln(format string, a ...any) {
 	fmt.Printf(format+"\n", a...)
+}
+
+func ColoredString(v string, color string) string {
+	return Color(color) + v + Color(ColorReset)
 }
 
 func PrintTableOfProviderItems(items []config.CacheItem) {
@@ -179,48 +184,48 @@ func PrintWorkItemDetail(detail *objects.WorkItemDetail) {
 // PrintTodoDetail renders the full detail view of a local todo, used by
 // 'sneak describe' for sn: refs.
 func PrintTodoDetail(item *todos.Todo) {
-	fmt.Printf("%s: %s\n", item.Key, item.Title)
+	Printfln(ColoredString("Key:    ", ColorTeal)+"%s", item.Key)
+	Printfln(ColoredString("Title:  ", ColorTeal)+"%s", item.Title)
 	fmt.Println()
 
-	fmt.Printf("Status:   %s\n", item.Status)
-	fmt.Printf("Created:  %s\n", item.CreatedAt.Format("2006-01-02 15:04"))
+	Printfln(ColoredString("Status:   ", ColorTeal)+"%s", item.Status)
+	Printfln(ColoredString("Created:  ", ColorTeal)+"%s", item.CreatedAt.Format("2006-01-02 15:04"))
 	if item.StartedAt != nil {
-		fmt.Printf("Started:  %s\n", item.StartedAt.Format("2006-01-02 15:04"))
+		Printfln(ColoredString("Started:  ", ColorTeal)+"%s", item.StartedAt.Format("2006-01-02 15:04"))
 	}
 	if item.ClosedAt != nil {
-		fmt.Printf("Closed:   %s\n", item.ClosedAt.Format("2006-01-02 15:04"))
+		Printfln(ColoredString("Closed:   ", ColorTeal)+"%s", item.ClosedAt.Format("2006-01-02 15:04"))
 	}
 	if item.Pin {
-		fmt.Println("Pinned:   yes")
+		fmt.Println(ColoredString("Pinned:   ", ColorTeal) + "yes")
 	}
 	if len(item.Labels) > 0 {
-		fmt.Printf("Labels:   %s\n", strings.Join(item.Labels, ", "))
+		Printfln(ColoredString("Labels:   ", ColorTeal)+"%s", strings.Join(item.Labels, ", "))
 	}
 	fmt.Println()
 
-	fmt.Printf("Notes (%d):\n", len(item.Notes))
-	if len(item.Notes) == 0 {
+	Printfln(ColoredString("Comments (%d):", ColorTeal), len(item.Comments))
+	if len(item.Comments) == 0 {
 		fmt.Println("  (none)")
 		return
 	}
-	for _, n := range item.Notes {
+	for _, n := range item.Comments {
 		at := ""
 		if n.At != nil {
 			at = n.At.Format("2006-01-02 15:04")
 		}
-		fmt.Printf("  [%s] %s\n", at, n.Text)
+		Printfln("  [%s] %s", at, n.Text)
 	}
 	fmt.Println()
 
-	fmt.Println("Description:")
+	fmt.Println(ColoredString("Description:", ColorTeal))
 	if strings.TrimSpace(item.Description) == "" {
 		fmt.Println("  (none)")
 	} else {
 		for _, line := range strings.Split(item.Description, "\n") {
-			fmt.Printf("  %s\n", line)
+			Printfln("  %s", line)
 		}
 	}
-
 }
 
 // RepoSummary is a standup summary entry for a single repository.
@@ -307,4 +312,136 @@ func timeAgo(t time.Time) string {
 	default:
 		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
 	}
+}
+
+// TodoGroup holds local todos for a single project scope.
+type TodoGroup struct {
+	Project string
+	Path    string
+	Items   []*todos.Todo
+}
+
+// ProviderGroup holds cached provider items for a single project.
+type ProviderGroup struct {
+	Project string
+	Path    string
+	Items   []config.CacheItem
+	Age     time.Duration
+}
+
+// shortPathMax is the default width of the PATH column in 'sneak all' tables.
+const shortPathMax = 30
+
+// PrintAllSummary renders 'sneak all' as two flat tables (provider items and
+// local todos) with a trailing PATH column. Provider cache ages are listed per
+// project under the provider table.
+func PrintAllSummary(todoGroups []TodoGroup, providerGroups []ProviderGroup) {
+	if len(providerGroups) == 0 && len(todoGroups) == 0 {
+		fmt.Println("No work items or todos found.")
+		return
+	}
+
+	if len(providerGroups) > 0 {
+		type providerRow struct {
+			item config.CacheItem
+			path string
+		}
+		var rows []providerRow
+		for _, pg := range providerGroups {
+			for _, item := range pg.Items {
+				rows = append(rows, providerRow{item: item, path: pg.Path})
+			}
+		}
+		sort.Slice(rows, func(i, j int) bool {
+			if rows[i].path != rows[j].path {
+				return rows[i].path < rows[j].path
+			}
+			return rows[i].item.Key < rows[j].item.Key
+		})
+
+		fmt.Printf("%-12s  %-10s  %-12s  %-16s  %-32s  %s\n",
+			"KEY", "ASSIGNED", "TYPE", "STATUS", "PATH", "SUMMARY")
+		fmt.Println(strings.Repeat("-", 100))
+
+		for _, r := range rows {
+			assignFlag := ""
+			if r.item.Assignee != "" {
+				assignFlag = Dot
+			}
+			summary := r.item.Summary
+			if len(summary) > 40 {
+				summary = r.item.Summary[:40]
+			}
+			fmt.Printf("%-12s  %-10s  %-12s  %-16s  %-32s  %s\n",
+				r.item.Key, assignFlag, r.item.Type, r.item.Status,
+				shortPath(r.path, shortPathMax), summary)
+		}
+
+		fmt.Println()
+		fmt.Printf("%d provider item(s) across %d project(s)\n", len(rows), len(providerGroups))
+		sort.Slice(providerGroups, func(i, j int) bool {
+			return providerGroups[i].Path < providerGroups[j].Path
+		})
+		for _, pg := range providerGroups {
+			fmt.Printf("  %-40s  fetched %s ago\n", pg.Path, pg.Age)
+		}
+	}
+
+	if len(todoGroups) > 0 {
+		type todoRow struct {
+			item *todos.Todo
+			path string
+		}
+		var rows []todoRow
+		for _, tg := range todoGroups {
+			for _, item := range tg.Items {
+				rows = append(rows, todoRow{item: item, path: tg.Path})
+			}
+		}
+		sort.SliceStable(rows, func(i, j int) bool {
+			if rows[i].path != rows[j].path {
+				return rows[i].path < rows[j].path
+			}
+			if rows[i].item.Pin != rows[j].item.Pin {
+				return rows[i].item.Pin
+			}
+			return rows[i].item.CreatedAt.Before(rows[j].item.CreatedAt)
+		})
+
+		if len(providerGroups) > 0 {
+			fmt.Println()
+		}
+
+		fmt.Printf("%-8s  %-4s  %-6s  %-10s  %-46s  %s\n",
+			"KEY", "PIN", "STATUS", "AGE", "TITLE", "PATH")
+		fmt.Println(strings.Repeat("-", 100))
+
+		for _, r := range rows {
+			age := time.Since(r.item.CreatedAt).Truncate(time.Minute)
+			pinMarker := ""
+			if r.item.Pin {
+				pinMarker = Dot
+			}
+			title := r.item.Title
+			if len(title) > 46 {
+				title = r.item.Title[:46]
+			}
+			fmt.Printf("%-8s  %-4s  %-6s  %-10s  %-46s  %s\n",
+				r.item.Key, pinMarker, r.item.Status, age, title,
+				shortPath(r.path, shortPathMax))
+		}
+
+		fmt.Println()
+		fmt.Printf("%d local todo(s) across %d project(s)\n", len(rows), len(todoGroups))
+	}
+}
+
+// shortPath renders a project path for a PATH column: the full path when it
+// fits within max characters, otherwise the trailing max characters prefixed
+// with "...".
+func shortPath(path string, max int) string {
+	if len(path) <= max {
+		return path
+	}
+	return "..." + path[len(path)-max:]
 }

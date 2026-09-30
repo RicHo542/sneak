@@ -6,112 +6,190 @@ import (
 	"time"
 
 	"github.com/richo542/sneak/internal/app"
-	"github.com/richo542/sneak/internal/handlers"
+	"github.com/richo542/sneak/internal/config"
 	"github.com/richo542/sneak/internal/todos"
 	"github.com/richo542/sneak/internal/ui"
 	"github.com/spf13/cobra"
 )
 
+type allFlags struct {
+	local  bool
+	remote bool
+	active bool
+	open   bool
+	closed bool
+}
+
 func newAllCmd(app *app.App) *cobra.Command {
-	var (
-		refresh        bool
-		todosFilter    bool
-		providerFilter bool
-	)
+	var flags allFlags
 
 	cmd := &cobra.Command{
 		Use:   "all",
 		Short: "List all work items globally.",
-		Long: `Displays all work items and todos accross all projects.
+		Long: `Displays all work items and todos across all projects.
 
-Uses a local cache (1hr TTL) for fast results.
-Use --refresh to force a live fetch from the provider.
-Use --todos to only show local todos, not provider items.
-Use --remote to only show remote provider work items, not local todos.`,
+Reads from the local cache (1hr TTL) and shows the cache age per project.
+Use --local to only show local todos, --remote to only show provider items.
+Use --active, --open or --closed to filter by status.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAll(app, refresh, todosFilter, providerFilter)
+			return runAll(app, flags)
 		},
 	}
 
-	cmd.Flags().BoolVar(&refresh, "refresh", false, "force live fetch from provider")
-	cmd.Flags().BoolVar(&todosFilter, "todos", false, "only show local todos")
-	cmd.Flags().BoolVar(&providerFilter, "remote", false, "only show remote work items")
+	cmd.Flags().BoolVar(&flags.local, "local", false, "only show local todos")
+	cmd.Flags().BoolVar(&flags.remote, "remote", false, "only show remote work items")
+	cmd.Flags().BoolVar(&flags.active, "active", false, "only show active items")
+	cmd.Flags().BoolVar(&flags.open, "open", false, "only show open items")
+	cmd.Flags().BoolVar(&flags.closed, "closed", false, "only show closed/done items")
 
 	return cmd
 }
 
-func runAll(
-	instance *app.App, refresh bool,
-	todoFilter bool, providerFilter bool,
-) error {
+func runAll(instance *app.App, flags allFlags) error {
+	showTodos := !flags.remote || flags.local
+	showProvider := !flags.local || flags.remote
 
-	// If no flag is provided - List both.
-	if !todoFilter && !providerFilter {
-		todoFilter = true
-		providerFilter = true
-	}
-
-	if instance.OutsideProjectScope() && providerFilter {
-		return fmt.Errorf("cannot show provider items outside of project scope.")
-	}
-
-	var providerListErr error
-	if providerFilter {
-		providerListErr = runAllProviderItems(instance, refresh)
-		if todoFilter {
-			fmt.Println()
-		}
-	}
-
-	var todoListErr error
-	if todoFilter {
-		todoListErr = runAllTodoItems(instance)
-	}
-
-	if todoListErr != nil || providerListErr != nil {
-		return errors.Join(todoListErr, providerListErr)
-	}
-
-	return nil
-}
-
-func runAllTodoItems(instance *app.App) error {
-	todoItems, err := instance.TodoStore.GetByStatus(
-		instance.ProjectScope, []string{
-			todos.TodoStatusOpen,
-			todos.TodoStatusActive,
-		},
-	)
+	pathByScope := map[string]string{}
+	states, err := config.DiscoverStates()
 	if err != nil {
 		return err
 	}
-
-	todos.SortForDisplay(todoItems)
-
-	ui.PrintTableOfTodos(todoItems)
-	ui.Printfln("%d todos in current context", len(todoItems))
-
-	return nil
-}
-
-func runAllProviderItems(app *app.App, refresh bool) error {
-
-	refreshRequired, err := handlers.CheckAndRefreshCache(app, refresh)
-	if refreshRequired && err != nil {
-		return err
+	for _, st := range states {
+		pathByScope[st.Key] = st.Dir
 	}
 
-	items := app.State.Cache.Items
+	var errs []error
+
+	var todoGroups []ui.TodoGroup
+	if showTodos {
+		todoGroups = collectAllTodos(instance, flags, pathByScope)
+	}
+
+	var providerGroups []ui.ProviderGroup
+	if showProvider {
+		groups, err := collectAllProviderItems(instance, states, flags)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		providerGroups = groups
+	}
+
+	ui.PrintAllSummary(todoGroups, providerGroups)
+
+	return errors.Join(errs...)
+}
+
+// collectAllTodos gathers open/active (or explicitly filtered) todos across
+// every scope, grouped by their scope key and annotated with the project path.
+// Scopes outside the state index (e.g. "global", or a todo-only project that
+// never fetched) fall back to the scope key itself.
+func collectAllTodos(instance *app.App, flags allFlags, pathByScope map[string]string) []ui.TodoGroup {
+	wanted := wantedTodoStatuses(flags)
+	buckets := instance.TodoStore.GetAllByStatus(wanted)
+
+	groups := make([]ui.TodoGroup, 0, len(buckets))
+	for _, b := range buckets {
+		path, ok := pathByScope[b.Scope]
+		if !ok {
+			path = b.Scope
+		}
+		groups = append(groups, ui.TodoGroup{Project: b.Scope, Path: path, Items: b.Items})
+	}
+	return groups
+}
+
+// wantedTodoStatuses resolves the status filter for todos. With no status flag
+// the default overview is open + active.
+func wantedTodoStatuses(flags allFlags) []string {
+	if !flags.open && !flags.active && !flags.closed {
+		return []string{todos.TodoStatusOpen, todos.TodoStatusActive}
+	}
+
+	var wanted []string
+	if flags.open {
+		wanted = append(wanted, todos.TodoStatusOpen)
+	}
+	if flags.active {
+		wanted = append(wanted, todos.TodoStatusActive)
+	}
+	if flags.closed {
+		wanted = append(wanted, todos.TodoStatusClosed)
+	}
+	return wanted
+}
+
+// collectAllProviderItems gathers cached provider items across every project
+// state discovered in the state dir. The current project's live (possibly
+// refreshed) state is preferred when inside a project.
+func collectAllProviderItems(instance *app.App, states []config.ActiveStates, flags allFlags) ([]ui.ProviderGroup, error) {
+	var groups []ui.ProviderGroup
+	for _, st := range states {
+		var state *config.State
+		switch {
+		case instance.InProjectScope() && st.Key == instance.LocalContext.ProjectID:
+			state = instance.State
+		default:
+			loaded, err := config.LoadState(st.Key)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load state '%s': %w", st.Key, err)
+			}
+			state = loaded
+		}
+
+		items := filterProviderItems(state, flags)
+		if len(items) == 0 {
+			continue
+		}
+
+		groups = append(groups, ui.ProviderGroup{
+			Project: st.Key,
+			Path:    st.Dir,
+			Items:   items,
+			Age:     time.Since(state.Cache.FetchedAt).Truncate(time.Second),
+		})
+	}
+
+	return groups, nil
+}
+
+func filterProviderItems(state *config.State, flags allFlags) []config.CacheItem {
+	items := state.Cache.Items
 	if len(items) == 0 {
-		fmt.Println("No work items found.")
 		return nil
 	}
 
-	// Log out the age of this state for keep user informed
-	age := time.Since(app.State.Cache.FetchedAt).Truncate(time.Second)
+	// Default overview: everything that is not done/closed.
+	if !flags.open && !flags.active && !flags.closed {
+		var filtered []config.CacheItem
+		for _, item := range items {
+			if todos.CoarseStatus(item.Status) != todos.TodoStatusClosed {
+				filtered = append(filtered, item)
+			}
+		}
+		return filtered
+	}
 
-	ui.PrintTableOfProviderItems(items)
-	ui.Printfln("%d work items (cached, fetched %s ago)", len(items), age)
+	activeKeys := make(map[string]struct{}, len(state.ActiveTasks))
+	for _, at := range state.ActiveTasks {
+		activeKeys[at.Key] = struct{}{}
+	}
 
-	return nil
+	var filtered []config.CacheItem
+	for _, item := range items {
+		if flags.active {
+			if _, ok := activeKeys[item.Key]; !ok {
+				continue
+			}
+		}
+		if flags.open && todos.CoarseStatus(item.Status) != todos.TodoStatusOpen {
+			continue
+		}
+		if flags.closed && todos.CoarseStatus(item.Status) != todos.TodoStatusClosed {
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+
+	return filtered
 }

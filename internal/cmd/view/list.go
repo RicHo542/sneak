@@ -94,7 +94,8 @@ func runListTodoItems(instance *app.App) error {
 		},
 	)
 	if err != nil {
-		return err
+		fmt.Println("0 todos in current context")
+		return nil
 	}
 
 	todos.SortForDisplay(todoItems)
