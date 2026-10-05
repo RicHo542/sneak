@@ -106,7 +106,11 @@ func PrintTableOfTodos(todos []*todos.Todo) {
 		if item.Pin {
 			pinMarker = Dot
 		}
-		fmt.Printf("%-8s  %-4s  %-6s  %-10s  %s\n", item.Key, pinMarker, item.Status, age, item.Title)
+		title := item.Title
+		if len(title) > 50 {
+			title = fmt.Sprintf("%s...", item.Title[:50])
+		}
+		fmt.Printf("%-8s  %-4s  %-6s  %-10s  %s\n", item.Key, pinMarker, item.Status, age, title)
 	}
 	fmt.Println()
 }
@@ -204,26 +208,33 @@ func PrintTodoDetail(item *todos.Todo) {
 	}
 	fmt.Println()
 
-	Printfln(ColoredString("Comments (%d):", ColorTeal), len(item.Comments))
-	if len(item.Comments) == 0 {
+	fmt.Println(ColoredString("Description:", ColorTeal))
+	desc := strings.TrimSpace(item.Description)
+	if desc == "" {
 		fmt.Println("  (none)")
-		return
-	}
-	for _, n := range item.Comments {
-		at := ""
-		if n.At != nil {
-			at = n.At.Format("2006-01-02 15:04")
+	} else {
+		lines := strings.Split(desc, "\n")
+		limit := 20
+		for i := 0; i < len(lines) && i < limit; i++ {
+			Printfln("  %s", lines[i])
 		}
-		Printfln("  [%s] %s", at, n.Text)
+		if len(lines) > limit {
+			Printfln("  ... (%d more lines)", len(lines)-limit)
+			Printfln("  use 'sneak note %s' to see the full description/notes", item.Key)
+		}
 	}
 	fmt.Println()
 
-	fmt.Println(ColoredString("Description:", ColorTeal))
-	if strings.TrimSpace(item.Description) == "" {
+	Printfln(ColoredString("Comments (%d):", ColorTeal), len(item.Comments))
+	if len(item.Comments) == 0 {
 		fmt.Println("  (none)")
 	} else {
-		for _, line := range strings.Split(item.Description, "\n") {
-			Printfln("  %s", line)
+		for _, n := range item.Comments {
+			at := ""
+			if n.At != nil {
+				at = n.At.Format("2006-01-02 15:04")
+			}
+			Printfln("  [%s] %s", at, n.Text)
 		}
 	}
 }
